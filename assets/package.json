@@ -1,7 +1,7 @@
 {
     "name": "@silarhi/turbo",
     "description": "Framework-agnostic Hotwire Turbo lifecycle orchestrator — mount/unmount your listeners across Turbo Drive, Frames and Streams",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "license": "MIT",
     "author": "SILARHI <dev@silarhi.fr>",
     "keywords": [
@@ -13,7 +13,10 @@
         "stimulus",
         "symfony-ux"
     ],
-    "repository": "https://github.com/silarhi/turbo-bundle",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/silarhi/turbo-bundle.git"
+    },
     "type": "module",
     "files": [
         "dist"

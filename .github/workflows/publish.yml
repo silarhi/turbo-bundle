@@ -1,7 +1,8 @@
 name: 'Publish'
 
 # Publishes @silarhi/turbo to npm when a GitHub Release is published.
-# Bump assets/package.json "version" and tag the release to match (e.g. v0.2.0).
+# The release tag (e.g. v0.2.0) drives the published version — the workflow
+# stamps it into package.json, so you never bump the version by hand.
 #
 # Security: uses npm Trusted Publishing (OIDC) — NO long-lived NPM_TOKEN is
 # stored. The job proves its identity to npm with a short-lived id-token, so you
@@ -20,7 +21,6 @@ jobs:
     npm:
         name: Publish @silarhi/turbo to npm
         runs-on: ubuntu-latest
-        environment: release # add required reviewers to this environment to gate releases
         defaults:
             run:
                 working-directory: assets
@@ -33,6 +33,13 @@ jobs:
                   registry-url: 'https://registry.npmjs.org'
                   cache: yarn
                   cache-dependency-path: assets/yarn.lock
+
+            # The release tag is the single source of truth for the version —
+            # no manual package.json bump. Both `vX.Y.Z` and `X.Y.Z` tags work.
+            - name: Set version from release tag
+              run: npm version "${TAG#v}" --no-git-tag-version --allow-same-version
+              env:
+                  TAG: ${{ github.event.release.tag_name }}
 
             - name: Install dependencies
               run: yarn install --frozen-lockfile
@@ -51,5 +58,13 @@ jobs:
               run: npm install -g npm@latest
 
             # No NODE_AUTH_TOKEN: npm exchanges the OIDC id-token with the registry.
+            # npm versions are immutable, so skip (don't red-fail) if this version
+            # is already published — makes re-running a release a safe no-op.
             - name: Publish
-              run: npm publish --provenance --access public
+              run: |
+                  version="$(node -p 'require("./package.json").version')"
+                  if npm view "@silarhi/turbo@${version}" version > /dev/null 2>&1; then
+                      echo "@silarhi/turbo@${version} is already published — skipping."
+                      exit 0
+                  fi
+                  npm publish --provenance --access public
