@@ -1,0 +1,55 @@
+name: 'Publish'
+
+# Publishes @silarhi/turbo to npm when a GitHub Release is published.
+# Bump assets/package.json "version" and tag the release to match (e.g. v0.2.0).
+#
+# Security: uses npm Trusted Publishing (OIDC) — NO long-lived NPM_TOKEN is
+# stored. The job proves its identity to npm with a short-lived id-token, so you
+# must first register this repo + workflow as a Trusted Publisher on npmjs.com
+# (Package settings -> Trusted Publishers). Provenance is attached automatically.
+
+on:
+    release:
+        types: [published]
+
+permissions:
+    contents: read
+    id-token: write # required for OIDC trusted publishing + provenance
+
+jobs:
+    npm:
+        name: Publish @silarhi/turbo to npm
+        runs-on: ubuntu-latest
+        environment: release # add required reviewers to this environment to gate releases
+        defaults:
+            run:
+                working-directory: assets
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '22'
+                  registry-url: 'https://registry.npmjs.org'
+                  cache: yarn
+                  cache-dependency-path: assets/yarn.lock
+
+            - name: Install dependencies
+              run: yarn install --frozen-lockfile
+
+            - name: Verify (lint, typecheck, test)
+              run: |
+                  yarn lint
+                  yarn typecheck
+                  yarn test
+
+            - name: Build
+              run: yarn build
+
+            # Trusted Publishing (OIDC) needs npm >= 11.5.1.
+            - name: Upgrade npm
+              run: npm install -g npm@latest
+
+            # No NODE_AUTH_TOKEN: npm exchanges the OIDC id-token with the registry.
+            - name: Publish
+              run: npm publish --provenance --access public
