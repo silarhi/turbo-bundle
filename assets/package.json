@@ -1,0 +1,49 @@
+{
+    "name": "@silarhi/turbo",
+    "description": "Framework-agnostic Hotwire Turbo lifecycle orchestrator — mount/unmount your listeners across Turbo Drive, Frames and Streams",
+    "version": "0.1.0",
+    "license": "MIT",
+    "author": "SILARHI <dev@silarhi.fr>",
+    "keywords": [
+        "turbo",
+        "hotwire",
+        "turbo-stream",
+        "turbo-frame",
+        "morph",
+        "stimulus",
+        "symfony-ux"
+    ],
+    "repository": "https://github.com/silarhi/turbo-bundle",
+    "type": "module",
+    "files": [
+        "dist"
+    ],
+    "main": "dist/index.mjs",
+    "module": "dist/index.mjs",
+    "types": "dist/index.d.mts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.mts",
+            "import": "./dist/index.mjs"
+        }
+    },
+    "scripts": {
+        "build": "tsdown",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "typecheck": "tsc --noEmit",
+        "lint": "biome check src test",
+        "lint:fix": "biome check --write src test"
+    },
+    "peerDependencies": {
+        "@hotwired/turbo": "^7.1.0 || ^8.0"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "2.4.16",
+        "@hotwired/turbo": "^8.0.0",
+        "jsdom": "^26.0.0",
+        "tsdown": "^0.22.0",
+        "typescript": "^5.8.0",
+        "vitest": "^4.1.0"
+    }
+}

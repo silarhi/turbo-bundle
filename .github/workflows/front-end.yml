@@ -1,0 +1,40 @@
+name: 'Front-end'
+
+on:
+    pull_request:
+    push:
+        branches:
+            - 'main'
+        tags:
+            - 'v*.*.*'
+
+jobs:
+    qa:
+        name: Lint, typecheck, test & build
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: assets
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '22'
+                  cache: yarn
+                  cache-dependency-path: assets/yarn.lock
+
+            - name: Install dependencies
+              run: yarn install --frozen-lockfile
+
+            - name: Biome (lint + format check)
+              run: yarn lint
+
+            - name: Type-check
+              run: yarn typecheck
+
+            - name: Unit tests
+              run: yarn test
+
+            - name: Build
+              run: yarn build
