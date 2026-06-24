@@ -21,6 +21,10 @@ jobs:
     npm:
         name: Publish @silarhi/turbo to npm
         runs-on: ubuntu-latest
+        # npm's Trusted Publisher is pinned to this environment, so the OIDC token
+        # MUST carry the `environment: release` claim. The environment's required
+        # reviewers were removed, so this no longer gates — it only supplies the claim.
+        environment: release
         defaults:
             run:
                 working-directory: assets
