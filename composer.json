@@ -1,0 +1,65 @@
+{
+    "name": "silarhi/turbo-bundle",
+    "description": "Framework-agnostic Hotwire Turbo frame-redirect following for Symfony — the PHP companion to @silarhi/turbo",
+    "license": "MIT",
+    "type": "library",
+    "keywords": [
+        "turbo",
+        "hotwire",
+        "symfony",
+        "turbo-frame",
+        "turbo-stream"
+    ],
+    "authors": [
+        {
+            "name": "SILARHI",
+            "email": "dev@silarhi.fr"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "symfony/config": "^6.4 || ^7.0 || ^8.0",
+        "symfony/dependency-injection": "^6.4 || ^7.0 || ^8.0",
+        "symfony/event-dispatcher": "^6.4 || ^7.0 || ^8.0",
+        "symfony/http-foundation": "^6.4 || ^7.0 || ^8.0",
+        "symfony/http-kernel": "^6.4 || ^7.0 || ^8.0"
+    },
+    "require-dev": {
+        "ergebnis/composer-normalize": "^2.52",
+        "friendsofphp/php-cs-fixer": "^3.95.7",
+        "phpstan/extension-installer": "^1.4.3",
+        "phpstan/phpstan": "^2.2.2",
+        "phpstan/phpstan-strict-rules": "^2.0.11",
+        "phpstan/phpstan-symfony": "^2.0.19",
+        "phpunit/phpunit": "^11.5.55 || ^12 || ^13",
+        "rector/rector": "^2.4.5",
+        "symfony/error-handler": "^6.4 || ^7.0 || ^8.0"
+    },
+    "suggest": {
+        "symfony/framework-bundle": "Register Silarhi\\TurboBundle\\TurboBundle for zero-config service wiring (optional — the classes also work standalone)"
+    },
+    "autoload": {
+        "psr-4": {
+            "Silarhi\\TurboBundle\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Silarhi\\TurboBundle\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "ergebnis/composer-normalize": true,
+            "phpstan/extension-installer": true
+        },
+        "preferred-install": {
+            "*": "dist"
+        },
+        "sort-packages": true
+    },
+    "scripts": {
+        "bump:tools": "@composer bump ergebnis/composer-normalize friendsofphp/php-cs-fixer phpstan/* phpunit/phpunit rector/rector",
+        "test": "phpunit"
+    }
+}

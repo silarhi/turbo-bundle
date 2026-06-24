@@ -1,0 +1,17 @@
+{
+    "devDependencies": {
+        "@biomejs/biome": "2.4.16",
+        "husky": ">=6",
+        "lint-staged": ">=10",
+        "prettier": "^3.8.1"
+    },
+    "lint-staged": {
+        "assets/**/*.{js,ts,mjs,json}": "biome check --write --no-errors-on-unmatched",
+        "*.{md,yml,yaml}": "prettier --write",
+        "*.php": "vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.dist.php",
+        "composer.json": "composer normalize"
+    },
+    "scripts": {
+        "prepare": "husky"
+    }
+}
