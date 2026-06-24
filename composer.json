@@ -33,10 +33,12 @@
         "phpstan/phpstan-symfony": "^2.0.19",
         "phpunit/phpunit": "^11.5.55 || ^12 || ^13",
         "rector/rector": "^2.4.5",
-        "symfony/error-handler": "^6.4 || ^7.0 || ^8.0"
+        "symfony/error-handler": "^6.4 || ^7.0 || ^8.0",
+        "twig/twig": "^3.0"
     },
     "suggest": {
-        "symfony/framework-bundle": "Register Silarhi\\TurboBundle\\TurboBundle for zero-config service wiring (optional — the classes also work standalone)"
+        "symfony/framework-bundle": "Register Silarhi\\TurboBundle\\SilarhiTurboBundle for zero-config service wiring (optional — the classes also work standalone)",
+        "twig/twig": "Enables the `turbo_frame` Twig filter (auto-registered by SilarhiTurboBundle when present)"
     },
     "autoload": {
         "psr-4": {

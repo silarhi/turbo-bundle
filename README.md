@@ -78,12 +78,36 @@ Register the optional bundle for zero-config service wiring:
 // config/bundles.php
 return [
     // ...
-    Silarhi\TurboBundle\TurboBundle::class => ['all' => true],
+    Silarhi\TurboBundle\SilarhiTurboBundle::class => ['all' => true],
 ];
 ```
 
-`TurboManager` and `TurboFrameListener` are now registered; the listener is tagged
-`kernel.event_subscriber` automatically.
+`TurboManager` and `TurboFrameListener` are now registered (the listener is tagged
+`kernel.event_subscriber` automatically), plus the `turbo_frame` Twig filter when Twig is installed.
+
+Configure it (default values shown):
+
+```yaml
+# config/packages/silarhi_turbo.yaml
+silarhi_turbo:
+    base_template: 'base-frame.html.twig'   # template the turbo_frame filter falls back to
+    follow_delete_redirects: true           # convert DELETE-request redirects to a Turbo-Location visit
+```
+
+### `turbo_frame` Twig filter
+
+Render a full template on a normal request, but the lean base-frame template when the
+request targets a (matching) Turbo Frame — without branching in every action:
+
+```twig
+{# falls back to the configured base_template #}
+{% extends 'project/show.html.twig'|turbo_frame('project-details') %}
+
+{# or pass an explicit base template #}
+{% extends 'project/show.html.twig'|turbo_frame('project-details', 'layout/_frame.html.twig') %}
+```
+
+Omit the frame id (`'project/show.html.twig'|turbo_frame`) to match **any** Turbo Frame request.
 
 ### Without the framework (components only)
 
