@@ -44,7 +44,7 @@
     "devDependencies": {
         "@biomejs/biome": "2.5.1",
         "@hotwired/turbo": "^8.0.0",
-        "jsdom": "^26.0.0",
+        "jsdom": "^29.0.0",
         "tsdown": "^0.22.0",
         "typescript": "^6.0.0",
         "vitest": "^4.1.0"
