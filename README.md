@@ -96,16 +96,22 @@ silarhi_turbo:
 
 ### `turbo_frame` Twig filter
 
-Render a full template on a normal request, but the lean base-frame template when the
+Render a full template on a normal request, but a lean frame template when the
 request targets a (matching) Turbo Frame — without branching in every action:
 
 ```twig
-{# falls back to the configured base_template #}
+{# convention: use project/show-frame.html.twig if it exists, #}
+{# otherwise fall back to the configured base_template          #}
 {% extends 'project/show.html.twig'|turbo_frame('project-details') %}
 
-{# or pass an explicit base template #}
+{# or pass an explicit base template (skips the -frame lookup) #}
 {% extends 'project/show.html.twig'|turbo_frame('project-details', 'layout/_frame.html.twig') %}
 ```
+
+When the frame matches and you don't pass a base template, the filter first looks for a
+**`-frame` sibling** of the template (`project/show.html.twig` → `project/show-frame.html.twig`).
+If that template exists it wins; otherwise the filter falls back to the configured
+`base_template`. Passing an explicit base template skips the sibling lookup entirely.
 
 Omit the frame id (`'project/show.html.twig'|turbo_frame`) to match **any** Turbo Frame request.
 
