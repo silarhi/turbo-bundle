@@ -14,16 +14,23 @@ declare(strict_types=1);
 namespace Silarhi\TurboBundle\Twig;
 
 use Silarhi\TurboBundle\TurboManager;
+use Twig\Environment;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
 
 /**
- * Adds the `turbo_frame` filter: pick the lean base-frame template when the
- * current request targets a (matching) Turbo Frame, otherwise the full template.
+ * Adds the `turbo_frame` filter: pick the lean frame template when the current
+ * request targets a (matching) Turbo Frame, otherwise the full template.
  *
- *     {% extends app.request|turbo_frame('main', 'page.html.twig') %}
- *     {# or, relying on the configured base template: #}
  *     {% extends 'page.html.twig'|turbo_frame('main') %}
+ *
+ * When rendering inside a matching frame and no base template is given, the
+ * filter first looks for a `-frame` sibling of the template
+ * (`page.html.twig` → `page-frame.html.twig`); if that template exists it wins,
+ * otherwise it falls back to the configured base template. Pass an explicit base
+ * template to skip the convention lookup:
+ *
+ *     {% extends 'page.html.twig'|turbo_frame('main', 'layout/_frame.html.twig') %}
  *
  * Classic AbstractExtension form (not the `#[AsTwigFilter]` attribute) so the
  * bundle keeps working on Symfony 6.4 / 7.0-7.2, where attribute-based Twig
@@ -43,18 +50,31 @@ final class TurboExtension extends AbstractExtension
     public function getFilters(): array
     {
         return [
-            new TwigFilter('turbo_frame', $this->turboFrame(...)),
+            new TwigFilter('turbo_frame', $this->turboFrame(...), ['needs_environment' => true]),
         ];
     }
 
     /**
      * @param string|null $baseTemplate per-call override of the configured base template
      */
-    public function turboFrame(string $template, ?string $frameId = null, ?string $baseTemplate = null): string
+    public function turboFrame(Environment $environment, string $template, ?string $frameId = null, ?string $baseTemplate = null): string
     {
         $matchesFrame = $this->turboManager->hasTurboFrame()
             && (null === $frameId || $frameId === $this->turboManager->getTurboFrameId());
 
-        return $matchesFrame ? ($baseTemplate ?? $this->baseTemplate) : $template;
+        if (!$matchesFrame) {
+            return $template;
+        }
+
+        if (null === $baseTemplate) {
+            $frameTemplateParts = explode('.', $template);
+            $frameTemplateParts[0] .= '-frame';
+            $frameTemplate = implode('.', $frameTemplateParts);
+            if ($environment->getLoader()->exists($frameTemplate)) {
+                return $frameTemplate;
+            }
+        }
+
+        return $baseTemplate ?? $this->baseTemplate;
     }
 }
