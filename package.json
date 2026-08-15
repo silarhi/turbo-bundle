@@ -1,6 +1,6 @@
 {
     "devDependencies": {
-        "@biomejs/biome": "2.5.7",
+        "@biomejs/biome": "2.5.8",
         "husky": ">=6",
         "lint-staged": ">=10",
         "prettier": "^3.8.1"
