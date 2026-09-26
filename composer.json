@@ -28,7 +28,7 @@
         "ergebnis/composer-normalize": "^2.53.0",
         "friendsofphp/php-cs-fixer": "^3.95.26",
         "phpstan/extension-installer": "^1.4.3",
-        "phpstan/phpstan": "^2.2.14",
+        "phpstan/phpstan": "^2.2.15",
         "phpstan/phpstan-strict-rules": "^2.0.12",
         "phpstan/phpstan-symfony": "^2.0.20",
         "phpunit/phpunit": "^11.5.55 || ^12 || ^13",
