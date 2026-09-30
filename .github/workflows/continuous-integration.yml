@@ -33,9 +33,71 @@ jobs:
               with:
                   job: ${{ matrix.job }}
 
+    lint:
+        name: Lint
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: assets
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+            - name: Setup Node.js
+              uses: actions/setup-node@v7
+              with:
+                  node-version: '24'
+                  cache: 'yarn'
+                  cache-dependency-path: 'assets/yarn.lock'
+            - name: Install dependencies
+              run: yarn install --frozen-lockfile
+            - name: Biome
+              run: yarn lint
+            - name: Typecheck
+              run: yarn typecheck
+
+    test:
+        name: Test
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: assets
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+            - name: Setup Node.js
+              uses: actions/setup-node@v7
+              with:
+                  node-version: '24'
+                  cache: 'yarn'
+                  cache-dependency-path: 'assets/yarn.lock'
+            - name: Install dependencies
+              run: yarn install --frozen-lockfile
+            - name: Test
+              run: yarn test
+
+    build:
+        name: Build
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: assets
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+            - name: Setup Node.js
+              uses: actions/setup-node@v7
+              with:
+                  node-version: '24'
+                  cache: 'yarn'
+                  cache-dependency-path: 'assets/yarn.lock'
+            - name: Install dependencies
+              run: yarn install --frozen-lockfile
+            - name: Build
+              run: yarn build
+
     ci-passed:
         name: CI passed
-        needs: [matrix, qa]
+        needs: [matrix, qa, lint, test, build]
         if: always()
         runs-on: ubuntu-latest
         steps:
