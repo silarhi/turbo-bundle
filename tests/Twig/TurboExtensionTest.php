@@ -20,6 +20,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Twig\Environment;
 use Twig\Loader\ArrayLoader;
+use Twig\TwigFilter;
 
 class TurboExtensionTest extends TestCase
 {
@@ -136,6 +137,43 @@ class TurboExtensionTest extends TestCase
         $result = $this->extensionFor($request)->turboFrame($environment, 'page.html.twig', 'main');
 
         self::assertSame('page.html.twig', $result);
+    }
+
+    public function testExposesTheTurboFrameFilter(): void
+    {
+        $filters = $this->extensionFor(new Request())->getFilters();
+
+        self::assertCount(1, $filters);
+        self::assertInstanceOf(TwigFilter::class, $filters[0]);
+        self::assertSame('turbo_frame', $filters[0]->getName());
+        self::assertTrue($filters[0]->needsEnvironment());
+    }
+
+    public function testFilterExtendsTheFrameSiblingWhenRenderedInsideAMatchingFrame(): void
+    {
+        $request = new Request();
+        $request->headers->set('Turbo-Frame', 'main');
+
+        $environment = new Environment(new ArrayLoader([
+            'layout.html.twig' => 'full:{% block body %}{% endblock %}',
+            'layout-frame.html.twig' => 'frame:{% block body %}{% endblock %}',
+            'page.html.twig' => "{% extends 'layout.html.twig'|turbo_frame('main') %}{% block body %}content{% endblock %}",
+        ]));
+        $environment->addExtension($this->extensionFor($request));
+
+        self::assertSame('frame:content', $environment->render('page.html.twig'));
+    }
+
+    public function testFilterExtendsTheFullTemplateOutsideAnyTurboFrame(): void
+    {
+        $environment = new Environment(new ArrayLoader([
+            'layout.html.twig' => 'full:{% block body %}{% endblock %}',
+            'layout-frame.html.twig' => 'frame:{% block body %}{% endblock %}',
+            'page.html.twig' => "{% extends 'layout.html.twig'|turbo_frame('main') %}{% block body %}content{% endblock %}",
+        ]));
+        $environment->addExtension($this->extensionFor(new Request()));
+
+        self::assertSame('full:content', $environment->render('page.html.twig'));
     }
 
     private function extensionFor(Request $request, string $baseTemplate = 'base-frame.html.twig'): TurboExtension
