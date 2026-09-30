@@ -21,6 +21,19 @@
             "matchManagers": ["composer"],
             "matchDepNames": ["php"],
             "enabled": false
+        },
+        {
+            "description": "twig/twig is tested against its minimal version: never raise the lower bound, only widen for new majors",
+            "matchManagers": ["composer"],
+            "matchPackageNames": ["twig/twig"],
+            "rangeStrategy": "widen"
+        },
+        {
+            "description": "Symfony runtime requirements keep their minimal versions: never raise the lower bound, only widen for new majors",
+            "matchManagers": ["composer"],
+            "matchDepTypes": ["require"],
+            "matchPackageNames": ["symfony/**"],
+            "rangeStrategy": "widen"
         }
     ]
 }
