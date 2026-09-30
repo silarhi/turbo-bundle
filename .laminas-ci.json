@@ -3,8 +3,15 @@
     "exclude": [
         {
             "name": "README Linting"
+        },
+        {
+            "name": "PHPUnit",
+            "php": "8.6"
         }
     ],
+    "ignore_php_platform_requirements": {
+        "8.6": true
+    },
     "additional_checks": [
         {
             "name": "Composer validate & normalize",
