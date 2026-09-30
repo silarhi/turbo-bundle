@@ -16,12 +16,14 @@ namespace Silarhi\TurboBundle\Tests\EventListener;
 use PHPUnit\Framework\TestCase;
 use Silarhi\TurboBundle\EventListener\TurboFrameListener;
 use Silarhi\TurboBundle\TurboManager;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Symfony\Component\HttpKernel\KernelEvents;
 
 class TurboFrameListenerTest extends TestCase
 {
@@ -72,6 +74,36 @@ class TurboFrameListenerTest extends TestCase
 
         $event = $this->dispatch($request, $original);
         self::assertSame($original, $event->getResponse());
+    }
+
+    public function testSubscribesToKernelResponse(): void
+    {
+        self::assertSame(
+            [KernelEvents::RESPONSE => 'onKernelResponse'],
+            TurboFrameListener::getSubscribedEvents(),
+        );
+    }
+
+    public function testConvertsFrameRedirectWhenRegisteredOnAnEventDispatcher(): void
+    {
+        $request = new Request();
+        $request->headers->set('Turbo-Frame', 'my_frame');
+        $stack = new RequestStack();
+        $stack->push($request);
+
+        $dispatcher = new EventDispatcher();
+        $dispatcher->addSubscriber(new TurboFrameListener(new TurboManager($stack)));
+
+        $event = new ResponseEvent(
+            self::createStub(HttpKernelInterface::class),
+            $request,
+            HttpKernelInterface::MAIN_REQUEST,
+            new RedirectResponse('/target'),
+        );
+        $dispatcher->dispatch($event, KernelEvents::RESPONSE);
+
+        self::assertSame(Response::HTTP_NO_CONTENT, $event->getResponse()->getStatusCode());
+        self::assertSame('/target', $event->getResponse()->headers->get('Turbo-Location'));
     }
 
     private function dispatch(Request $request, Response $response, bool $followDeleteRedirects = true): ResponseEvent
