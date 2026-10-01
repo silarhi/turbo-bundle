@@ -1,5 +1,11 @@
 # Turbo Bundle
 
+![Build Status](https://github.com/silarhi/turbo-bundle/actions/workflows/continuous-integration.yml/badge.svg)
+[![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fsilarhi%2Fturbo-bundle%2Fbadges%2Fcoverage.json)](https://github.com/silarhi/turbo-bundle/actions/workflows/continuous-integration.yml)
+[![Latest Stable Version](https://poser.pugx.org/silarhi/turbo-bundle/v/stable)](https://packagist.org/packages/silarhi/turbo-bundle)
+[![Total Downloads](https://poser.pugx.org/silarhi/turbo-bundle/downloads)](https://packagist.org/packages/silarhi/turbo-bundle)
+[![License](https://poser.pugx.org/silarhi/turbo-bundle/license)](https://packagist.org/packages/silarhi/turbo-bundle)
+
 Framework-agnostic [Hotwire Turbo](https://turbo.hotwired.dev/) lifecycle helpers, split in two reusable halves:
 
 - **`@silarhi/turbo`** (JS/TS) — a `TurboHandler` that wires the Turbo Drive / Frame / Stream
