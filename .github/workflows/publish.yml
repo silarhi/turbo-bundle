@@ -8,10 +8,19 @@ name: 'Publish'
 # stored. The job proves its identity to npm with a short-lived id-token, so you
 # must first register this repo + workflow as a Trusted Publisher on npmjs.com
 # (Package settings -> Trusted Publishers). Provenance is attached automatically.
+#
+# A failed release can be re-published with "Run workflow" + the existing tag: a
+# re-run of the release event would reuse the workflow file as it was at that tag.
 
 on:
     release:
         types: [published]
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: 'Existing release tag to publish (e.g. v0.3.1)'
+                required: true
+                type: string
 
 permissions:
     contents: read
@@ -31,11 +40,15 @@ jobs:
                 working-directory: assets
         steps:
             - uses: actions/checkout@v7
+              with:
+                  ref: ${{ github.event.release.tag_name || inputs.tag }}
 
             - uses: actions/setup-node@v7
               with:
                   node-version: '24'
-                  registry-url: 'https://registry.npmjs.org'
+                  # No `registry-url`: it writes an .npmrc with `${NODE_AUTH_TOKEN}`, which
+                  # setup-node v7 no longer stubs, so yarn fails to read it. OIDC publishing
+                  # targets the default registry without any .npmrc.
                   cache: yarn
                   cache-dependency-path: assets/yarn.lock
 
@@ -44,7 +57,7 @@ jobs:
             - name: Set version from release tag
               run: npm version "${TAG#v}" --no-git-tag-version --allow-same-version
               env:
-                  TAG: ${{ github.event.release.tag_name }}
+                  TAG: ${{ github.event.release.tag_name || inputs.tag }}
 
             - name: Install dependencies
               run: yarn install --frozen-lockfile
