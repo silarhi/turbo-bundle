@@ -21,6 +21,7 @@ jobs:
     npm:
         name: Publish @silarhi/turbo to npm
         runs-on: ubuntu-latest
+        timeout-minutes: 15
         # npm's Trusted Publisher is pinned to this environment, so the OIDC token
         # MUST carry the `environment: release` claim. The environment's required
         # reviewers were removed, so this no longer gates — it only supplies the claim.
@@ -57,9 +58,10 @@ jobs:
             - name: Build
               run: yarn build
 
-            # Trusted Publishing (OIDC) needs npm >= 11.5.1.
+            # Trusted Publishing (OIDC) needs npm >= 11.5.1. Pinned to a major so a new
+            # npm major is an explicit change, not something picked up mid-release.
             - name: Upgrade npm
-              run: npm install -g npm@latest
+              run: npm install -g npm@12
 
             # No NODE_AUTH_TOKEN: npm exchanges the OIDC id-token with the registry.
             # npm versions are immutable, so skip (don't red-fail) if this version
