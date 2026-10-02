@@ -9,6 +9,9 @@ on:
         tags:
             - 'v*.*.*'
 
+permissions:
+    contents: read
+
 jobs:
     matrix:
         name: Generate job matrix
