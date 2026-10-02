@@ -34,21 +34,24 @@
 <h1 align="center">Turbo Bundle</h1>
 
 <p align="center">
-    <strong>Framework-agnostic <a href="https://turbo.hotwired.dev/">Hotwire Turbo</a> lifecycle helpers, in two halves.</strong><br>
-    A TypeScript handler for the browser and a Symfony-components listener for the server — each usable on its own.
+    <strong>Two small, framework-agnostic <a href="https://turbo.hotwired.dev/">Hotwire Turbo</a> helpers.</strong><br>
+    A TypeScript lifecycle orchestrator for the browser and a Symfony-components frame-redirect listener for the server — each usable on its own.
 </p>
 
 ---
 
-The two halves implement opposite ends of the same redirect-following contract:
+The two halves solve different problems and only meet on redirect following (the server escalates a frame redirect to a
+`Turbo-Location` header, the browser handler follows it):
 
-- **`@silarhi/turbo`** (JS/TS) — a `TurboHandler` that wires the Turbo Drive / Frame / Stream lifecycle to a single pair
+- **[`@silarhi/turbo`](https://www.npmjs.com/package/@silarhi/turbo)** (JS/TS, [docs](assets/README.md)) — a
+  **lifecycle orchestrator**: a `TurboHandler` that wires the Turbo Drive / Frame / Stream lifecycle to a single pair
   of `onMount` / `onUnmount` callbacks, so your per-container listeners (tooltips, selects, datepickers, …) initialise
   and clean up correctly across **every** Turbo navigation — including Stream / Mercure mutations, which fire no render
   event of their own.
-- **`silarhi/turbo-bundle`** (PHP) — a `TurboManager` + `TurboFrameListener` that turn a redirect issued inside a Turbo
-  Frame into a `204 + Turbo-Location`, escalating it to a full Drive visit. Depends on Symfony **components only** — no
-  `symfony/framework-bundle` — so it works in projects that wire an event dispatcher by hand.
+- **`silarhi/turbo-bundle`** (PHP) — **frame-redirect following**: a `TurboManager` + `TurboFrameListener` that turn a
+  redirect issued inside a Turbo Frame into a `204 + Turbo-Location`, escalating it to a full Drive visit (plus the
+  optional `turbo_frame` Twig filter). Depends on Symfony **components only** — no `symfony/framework-bundle` — so it
+  works in projects that wire an event dispatcher by hand.
 
 ## Features
 
@@ -84,6 +87,9 @@ composer require silarhi/turbo-bundle
 # JS half
 yarn add @silarhi/turbo
 ```
+
+The npm package is published as [`@silarhi/turbo`](https://www.npmjs.com/package/@silarhi/turbo); its own README
+([`assets/README.md`](assets/README.md)) documents the JS half in more detail.
 
 ## JavaScript — `TurboHandler`
 
@@ -188,9 +194,14 @@ Omit the frame id (`'project/show.html.twig'|turbo_frame`) to match **any** Turb
 ```php
 use Silarhi\TurboBundle\EventListener\TurboFrameListener;
 use Silarhi\TurboBundle\TurboManager;
+use Silarhi\TurboBundle\Twig\TurboExtension;
 
 $turboManager = new TurboManager($requestStack);
 $dispatcher->addSubscriber(new TurboFrameListener($turboManager));
+
+// Optional: the turbo_frame Twig filter (requires twig/twig).
+// The second argument is the base template the filter falls back to (default: 'base-frame.html.twig').
+$twig->addExtension(new TurboExtension($turboManager, 'base-frame.html.twig'));
 ```
 
 `TurboFrameListener` also follows `DELETE` redirects on Turbo requests by default; pass
@@ -225,6 +236,10 @@ yarn lint        # biome (yarn lint:fix to apply fixes)
 yarn typecheck   # tsc --noEmit
 yarn build       # tsdown → dist/
 ```
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ## Contributing
 
