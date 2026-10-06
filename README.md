@@ -107,14 +107,15 @@ handler.start() // attach listeners (idempotent)
 
 ### Options
 
-| Option            | Type                                       | Default            | Purpose                                                                                                                 |
-| ----------------- | ------------------------------------------ | ------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| `onMount`         | `(container: Element \| Document) => void` | —                  | Init your listeners on a freshly rendered / inserted element.                                                           |
-| `onUnmount`       | `(container: Element \| Document) => void` | —                  | Tear them down before the element leaves the DOM.                                                                       |
-| `getContainer`    | `(document: Document) => Element`          | `document.body`    | Root element a full Drive render mounts on.                                                                             |
-| `onRedirect`      | `(url: string) => void`                    | `Turbo.visit(url)` | Follow a server `Turbo-Location` redirect.                                                                              |
-| `streamMutations` | `boolean`                                  | `true`             | Diff the DOM around each Turbo Stream render and mount/unmount the nodes it touched.                                    |
-| `morphMutations`  | `boolean`                                  | `false`            | Handle Drive/Frame **morph** renders per-node via `turbo:morph-element` instead of re-initializing the whole container. |
+| Option                | Type                                       | Default            | Purpose                                                                                                                 |
+| --------------------- | ------------------------------------------ | ------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `onMount`             | `(container: Element \| Document) => void` | —                  | Init your listeners on a freshly rendered / inserted element.                                                           |
+| `onUnmount`           | `(container: Element \| Document) => void` | —                  | Tear them down before the element leaves the DOM.                                                                       |
+| `getContainer`        | `(document: Document) => Element`          | `document.body`    | Root element a full Drive render mounts on.                                                                             |
+| `onRedirect`          | `(url: string) => void`                    | `Turbo.visit(url)` | Follow a server `Turbo-Location` redirect.                                                                              |
+| `streamMutations`     | `boolean`                                  | `true`             | Diff the DOM around each Turbo Stream render and mount/unmount the nodes it touched.                                    |
+| `morphMutations`      | `boolean`                                  | `false`            | Handle Drive/Frame **morph** renders per-node via `turbo:morph-element` instead of re-initializing the whole container. |
+| `visitOnFrameMissing` | `boolean`                                  | `false`            | Render a frame response with no matching `<turbo-frame>` as a full Drive visit (Turbo 7.2+).                            |
 
 ### `streamMutations` (the "morph" switch)
 
@@ -135,6 +136,19 @@ Set `morphMutations: true` to instead skip that coarse re-init on morph renders 
 actually morphed, via the `turbo:morph-element` event — leaving preserved widgets (an open select, a focused field)
 untouched. Scope: it covers elements morphed **in place**; subtrees a morph adds or removes wholesale aren't re-mounted
 by this path. It requires `onMount`/`onUnmount` to be safe to call on an individual element.
+
+### `visitOnFrameMissing` (frame response without a matching frame)
+
+When a frame request gets a response that has no matching `<turbo-frame>` — typically an expired session redirecting
+to a login page — Turbo fires `turbo:frame-missing`, writes "Content missing" into the frame and throws. Set
+`visitOnFrameMissing: true` to cancel that and render the response as a full page instead. It does the same as:
+
+```js
+document.addEventListener('turbo:frame-missing', (event) => {
+    event.preventDefault()
+    event.detail.visit(event.detail.response)
+})
+```
 
 ### Keeping a redirect inside its frame
 

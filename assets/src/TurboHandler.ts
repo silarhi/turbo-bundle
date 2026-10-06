@@ -48,6 +48,13 @@ export interface TurboHandlerOptions {
      * `onUnmount` to be safe to call on an individual element.
      */
     morphMutations?: boolean
+    /**
+     * When a frame response has no matching `<turbo-frame>` (`turbo:frame-missing`),
+     * cancel Turbo's default handling (an error message written into the frame
+     * plus a thrown exception) and render the response as a full Drive visit
+     * instead. Defaults to `false` (stock Turbo behavior). Requires Turbo 7.2+.
+     */
+    visitOnFrameMissing?: boolean
 }
 
 interface BeforeFetchRequestDetail {
@@ -62,6 +69,11 @@ interface SubmitEndDetail {
     success: boolean
     fetchResponse?: { contentType?: string }
     formSubmission: { fetchRequest: { headers: Record<string, string> } }
+}
+
+interface FrameMissingDetail {
+    response: Response
+    visit: (location: Response | string) => Promise<void> | void
 }
 
 interface BeforeStreamRenderDetail {
@@ -100,6 +112,7 @@ export class TurboHandler {
     readonly #onRedirect: (url: string) => void
     readonly #streamMutations: boolean
     readonly #morphMutations: boolean
+    readonly #visitOnFrameMissing: boolean
 
     #started = false
     #initialLoad = true
@@ -117,6 +130,7 @@ export class TurboHandler {
         this.#onRedirect = options.onRedirect ?? ((url) => window.Turbo?.visit(url))
         this.#streamMutations = options.streamMutations ?? true
         this.#morphMutations = options.morphMutations ?? false
+        this.#visitOnFrameMissing = options.visitOnFrameMissing ?? false
     }
 
     /** Attach every document listener. Idempotent — calling twice is a no-op. */
@@ -143,6 +157,10 @@ export class TurboHandler {
 
         if (this.#morphMutations) {
             this.#bindings.push({ type: 'turbo:morph-element', handler: this.#onMorphElement })
+        }
+
+        if (this.#visitOnFrameMissing) {
+            this.#bindings.push({ type: 'turbo:frame-missing', handler: this.#onFrameMissing })
         }
 
         for (const { type, handler } of this.#bindings) {
@@ -196,6 +214,15 @@ export class TurboHandler {
 
         event.preventDefault()
         this.#onRedirect(location)
+    }
+
+    // The frame response has no matching <turbo-frame> (e.g. an expired session
+    // redirecting to a login page): render it as a full page instead of letting
+    // Turbo write an error into the frame and throw.
+    #onFrameMissing = (event: Event): void => {
+        const { response, visit } = (event as CustomEvent<FrameMissingDetail>).detail
+        event.preventDefault()
+        visit(response)
     }
 
     // A failed Drive submission (e.g. 422 outside any frame) makes Turbo render
