@@ -5,6 +5,13 @@ All notable changes to `silarhi/turbo-bundle` (Composer) and `@silarhi/turbo` (n
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Both packages are released from the
 same git tag; since 0.2.1 the npm package version follows that tag.
 
+## [Unreleased]
+
+### Added
+
+- `TurboHandler` option `visitOnFrameMissing`: when a frame response has no matching `<turbo-frame>`
+  (`turbo:frame-missing`), render it as a full Drive visit instead of Turbo's "Content missing" error. Off by default.
+
 ## [0.3.1] - 2026-10-01
 
 ### Fixed
@@ -63,6 +70,7 @@ First tagged release. (`@silarhi/turbo@0.1.0` was published to npm ahead of it, 
 - `turbo_frame` Twig filter (registered when Twig is installed) to extend a lean frame template when the request targets
   a matching Turbo Frame.
 
+[Unreleased]: https://github.com/silarhi/turbo-bundle/compare/v0.3.1...HEAD
 [0.3.1]: https://github.com/silarhi/turbo-bundle/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/silarhi/turbo-bundle/compare/v0.2.3...v0.3.0
 [0.2.3]: https://github.com/silarhi/turbo-bundle/compare/v0.2.2...v0.2.3

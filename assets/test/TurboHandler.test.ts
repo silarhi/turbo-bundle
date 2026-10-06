@@ -100,6 +100,27 @@ describe('TurboHandler', () => {
         expect(event.defaultPrevented).toBe(true)
     })
 
+    it('visits the response of a missing frame when visitOnFrameMissing is enabled', () => {
+        handler.stop()
+        handler = new TurboHandler({ onMount, onUnmount, visitOnFrameMissing: true })
+        handler.start()
+
+        const response = new Response('<html></html>')
+        const visit = vi.fn()
+        const event = fire('turbo:frame-missing', { response, visit })
+
+        expect(visit).toHaveBeenCalledWith(response)
+        expect(event.defaultPrevented).toBe(true)
+    })
+
+    it('leaves turbo:frame-missing to Turbo by default', () => {
+        const visit = vi.fn()
+        const event = fire('turbo:frame-missing', { response: new Response(''), visit })
+
+        expect(visit).not.toHaveBeenCalled()
+        expect(event.defaultPrevented).toBe(false)
+    })
+
     it('adds the follow-redirect header only for opted-in frames', () => {
         const optedIn = document.createElement('turbo-frame')
         optedIn.id = 'opted_in'
