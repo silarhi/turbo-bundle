@@ -7,6 +7,8 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-12
+
 ### Changed
 
 - `TurboManager` no longer throws a `RuntimeException` ("No request available") when the `RequestStack` has no current
@@ -106,7 +108,8 @@ First tagged release. (`@silarhi/turbo@0.1.0` was published to npm ahead of it, 
 - `turbo_frame` Twig filter (registered when Twig is installed) to extend a lean frame template when the request targets
   a matching Turbo Frame.
 
-[Unreleased]: https://github.com/silarhi/turbo-bundle/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/silarhi/turbo-bundle/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/silarhi/turbo-bundle/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/silarhi/turbo-bundle/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/silarhi/turbo-bundle/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/silarhi/turbo-bundle/compare/v0.3.0...v0.3.1
