@@ -7,10 +7,7 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 
 ## [Unreleased]
 
-### Added
-
-- `TurboHandler` option `visitOnFrameMissing`: when a frame response has no matching `<turbo-frame>`
-  (`turbo:frame-missing`), render it as a full Drive visit instead of Turbo's "Content missing" error. Off by default.
+## [0.4.1] - 2026-10-12
 
 ### Fixed
 
@@ -20,6 +17,13 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 - The `turbo_frame` filter's `-frame` sibling convention renamed the first dot of the whole path: for
   `v1.2/page.html.twig` it looked for `v1-frame.2/page.html.twig` and fell back to the base template. It now inserts
   `-frame` before the first dot of the file name (`v1.2/page-frame.html.twig`).
+
+## [0.4.0] - 2026-10-07
+
+### Added
+
+- `TurboHandler` option `visitOnFrameMissing`: when a frame response has no matching `<turbo-frame>`
+  (`turbo:frame-missing`), render it as a full Drive visit instead of Turbo's "Content missing" error. Off by default.
 
 ## [0.3.1] - 2026-10-01
 
@@ -79,7 +83,9 @@ First tagged release. (`@silarhi/turbo@0.1.0` was published to npm ahead of it, 
 - `turbo_frame` Twig filter (registered when Twig is installed) to extend a lean frame template when the request targets
   a matching Turbo Frame.
 
-[Unreleased]: https://github.com/silarhi/turbo-bundle/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/silarhi/turbo-bundle/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/silarhi/turbo-bundle/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/silarhi/turbo-bundle/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/silarhi/turbo-bundle/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/silarhi/turbo-bundle/compare/v0.2.3...v0.3.0
 [0.2.3]: https://github.com/silarhi/turbo-bundle/compare/v0.2.2...v0.2.3
