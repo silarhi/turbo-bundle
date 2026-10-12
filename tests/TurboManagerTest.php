@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Silarhi\TurboBundle\Tests;
 
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 use Silarhi\TurboBundle\TurboManager;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -69,12 +68,14 @@ class TurboManagerTest extends TestCase
         self::assertFalse($this->managerFor(new Request())->isTurboRequest());
     }
 
-    public function testThrowsWhenNoCurrentRequest(): void
+    public function testAnswersAsAPlainRequestWithoutACurrentRequest(): void
     {
         $manager = new TurboManager(new RequestStack());
 
-        $this->expectException(RuntimeException::class);
-        $manager->isTurboRequest();
+        self::assertFalse($manager->hasTurboFrame());
+        self::assertNull($manager->getTurboFrameId());
+        self::assertFalse($manager->followTurboFrameRedirect());
+        self::assertFalse($manager->isTurboRequest());
     }
 
     private function managerFor(Request $request): TurboManager

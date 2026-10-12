@@ -13,12 +13,13 @@ declare(strict_types=1);
 
 namespace Silarhi\TurboBundle;
 
-use RuntimeException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * Reads the Turbo request headers off the current request.
+ * Reads the Turbo request headers off the current request. Without a current
+ * request (console command, message handler, email rendering) every method
+ * answers as for a plain, non-Turbo request.
  *
  * Depends on nothing but the HttpFoundation RequestStack, so it works in a
  * full Symfony app and in any project that wires Symfony components by hand.
@@ -32,28 +33,28 @@ final readonly class TurboManager
 
     public function hasTurboFrame(): bool
     {
-        return $this->getRequest()->headers->has('turbo-frame');
+        return $this->getRequest()?->headers->has('turbo-frame') ?? false;
     }
 
     public function getTurboFrameId(): ?string
     {
-        return $this->getRequest()->headers->get('turbo-frame');
+        return $this->getRequest()?->headers->get('turbo-frame');
     }
 
     public function followTurboFrameRedirect(): bool
     {
         return $this->hasTurboFrame()
-            && false === $this->getRequest()->headers->has('turbo-frame-follow-redirect');
+            && false === $this->getRequest()?->headers->has('turbo-frame-follow-redirect');
     }
 
     public function isTurboRequest(): bool
     {
-        return $this->getRequest()->headers->has('x-turbo-request-id');
+        return $this->getRequest()?->headers->has('x-turbo-request-id') ?? false;
     }
 
-    private function getRequest(): Request
+    // No current request (console command, message handler, email rendering): not a Turbo request
+    private function getRequest(): ?Request
     {
-        return $this->requestStack->getCurrentRequest()
-            ?? throw new RuntimeException('No request available');
+        return $this->requestStack->getCurrentRequest();
     }
 }

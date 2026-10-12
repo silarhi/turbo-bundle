@@ -55,6 +55,11 @@ final readonly class TurboFrameListener implements EventSubscriberInterface
         }
 
         $request = $event->getRequest();
+        // A frame with `data-turbo-follow-redirect` keeps every redirect, DELETE ones included
+        if ($request->headers->has('Turbo-Frame-Follow-Redirect')) {
+            return;
+        }
+
         $shouldFollow = $this->turboManager->followTurboFrameRedirect()
             || ($this->followDeleteRedirects && $request->isMethod('DELETE') && $this->turboManager->isTurboRequest());
 
@@ -62,8 +67,22 @@ final readonly class TurboFrameListener implements EventSubscriberInterface
             return;
         }
 
-        $event->setResponse(new Response(null, Response::HTTP_NO_CONTENT, [
-            'Turbo-Location' => $response->headers->get('Location'),
-        ]));
+        $event->setResponse($this->toTurboLocation($response));
+    }
+
+    /**
+     * Keeps what the redirect carried (cookies, cache and custom headers): only the
+     * status, the `Location` and the body headers change.
+     */
+    private function toTurboLocation(Response $redirect): Response
+    {
+        $response = new Response(null, Response::HTTP_NO_CONTENT);
+        $response->headers = clone $redirect->headers;
+        $response->headers->set('Turbo-Location', $redirect->headers->get('Location'));
+        $response->headers->remove('Location');
+        $response->headers->remove('Content-Type');
+        $response->headers->remove('Content-Length');
+
+        return $response;
     }
 }

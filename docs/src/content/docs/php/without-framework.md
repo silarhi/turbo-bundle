@@ -27,9 +27,9 @@ $twig->addExtension(new TurboExtension($turboManager, 'base-frame.html.twig'));
 ## Requirements
 
 - `$requestStack` must be the `RequestStack` your `HttpKernel` pushes requests on: `TurboManager` reads the headers of
-  its current request, and throws a `RuntimeException` ("No request available") when there is none.
+  its current request, and answers as for a plain, non-Turbo request when there is none.
 - `$dispatcher` must be the event dispatcher of that `HttpKernel`: the listener subscribes to `kernel.response`.
-- The Twig filter is used while rendering a request: outside of one (a console command, a message handler),
-  `turbo_frame` throws the same exception.
+- Outside a request (a console command, a message handler, an email), the `turbo_frame` filter returns the template
+  unchanged.
 
 See the [PHP API reference](/reference/php-api/) for every public method.

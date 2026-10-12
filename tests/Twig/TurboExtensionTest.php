@@ -162,6 +162,19 @@ class TurboExtensionTest extends TestCase
         self::assertSame('page.html.twig', $result);
     }
 
+    public function testFilterExtendsTheFullTemplateWithoutACurrentRequest(): void
+    {
+        // A console command or an email rendering the template: no request on the stack
+        $environment = new Environment(new ArrayLoader([
+            'layout.html.twig' => 'full:{% block body %}{% endblock %}',
+            'layout-frame.html.twig' => 'frame:{% block body %}{% endblock %}',
+            'page.html.twig' => "{% extends 'layout.html.twig'|turbo_frame %}{% block body %}content{% endblock %}",
+        ]));
+        $environment->addExtension(new TurboExtension(new TurboManager(new RequestStack())));
+
+        self::assertSame('full:content', $environment->render('page.html.twig'));
+    }
+
     public function testExposesTheTurboFrameFilter(): void
     {
         $filters = $this->extensionFor(new Request())->getFilters();

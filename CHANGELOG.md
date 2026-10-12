@@ -7,6 +7,29 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 
 ## [Unreleased]
 
+### Changed
+
+- `TurboManager` no longer throws a `RuntimeException` ("No request available") when the `RequestStack` has no current
+  request: every method answers as for a plain, non-Turbo request (`false`, or `null` for `getTurboFrameId()`). The
+  `turbo_frame` Twig filter therefore returns the template unchanged in console commands, message handlers and emails
+  rendered outside a request.
+- A frame with `data-turbo-follow-redirect` (request header `Turbo-Frame-Follow-Redirect`) now keeps all its redirects:
+  `TurboFrameListener` no longer converts its `DELETE` redirects while `follow_delete_redirects` is on. Answer such
+  `DELETE` requests with a `303 See Other` so the browser follows them with a `GET`.
+- `@silarhi/turbo`: the `onMount` / `onUnmount` options are typed `(container: Element) => void`, the only value the
+  handler ever passed. Callbacks typed `(container: Element | Document) => void` are still accepted.
+
+### Fixed
+
+- `TurboFrameListener` dropped the headers and cookies of the redirect it replaced with the `204` + `Turbo-Location`
+  response. They are now copied over; only the status, `Location` (moved to `Turbo-Location`), `Content-Type` and
+  `Content-Length` change.
+- `@silarhi/turbo`: without the `window.Turbo` global, the default `onRedirect` did nothing, leaving the page unchanged
+  after cancelling the response. It now falls back to a full page load (`window.location.assign(url)`) and logs a
+  warning.
+- The `husky` pre-commit hook was never installed (no `.husky/pre-commit`): it now runs `lint-staged`, which also formats
+  the documentation's `.mdx` files and runs Biome on `assets/` with its own configuration.
+
 ## [0.4.1] - 2026-10-12
 
 ### Fixed
