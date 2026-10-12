@@ -1,0 +1,48 @@
+---
+title: Turbo Bundle
+description: Framework-agnostic Hotwire Turbo helpers, a lifecycle orchestrator for the browser and frame-redirect following for Symfony.
+template: splash
+hero:
+    tagline: Two small, framework-agnostic <a href="https://turbo.hotwired.dev/">Hotwire Turbo</a> helpers. A TypeScript lifecycle orchestrator for the browser and a frame-redirect listener for Symfony, each usable on its own.
+    actions:
+        - text: Get started
+          link: /getting-started/installation/
+          icon: right-arrow
+        - text: View on GitHub
+          link: https://github.com/silarhi/turbo-bundle
+          icon: github
+          variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components'
+
+```bash
+composer require silarhi/turbo-bundle # PHP half
+yarn add @silarhi/turbo               # JS half
+```
+
+The two halves solve different problems and only meet on [redirect following](/php/frame-redirects/): the server
+turns a frame redirect into a `Turbo-Location` header, the browser handler follows it.
+
+<CardGrid>
+    <Card title="One lifecycle hook pair" icon="rocket">
+        `onMount` / `onUnmount` run on Drive renders, frame loads and Stream mutations alike.
+        [TurboHandler](/javascript/turbo-handler/)
+    </Card>
+    <Card title="Morph-aware" icon="random">
+        Stream renders are diffed per node (mount wins, never a double mount); Drive and Frame morphs can opt into
+        per-element refresh. [Morph mutations](/javascript/morph-mutations/)
+    </Card>
+    <Card title="Frame-redirect following" icon="right-arrow">
+        A redirect inside a Turbo Frame becomes a full Drive visit instead of a frame swap, `DELETE` redirects too.
+        [Frame redirects](/php/frame-redirects/)
+    </Card>
+    <Card title="turbo_frame Twig filter" icon="document">
+        Extend a lean frame template only when the request targets a matching frame. [The
+        filter](/php/turbo-frame-filter/)
+    </Card>
+    <Card title="Framework-optional" icon="puzzle">
+        The bundle wires everything with zero configuration; the classes also work with Symfony components alone.
+        [Without the framework](/php/without-framework/)
+    </Card>
+</CardGrid>

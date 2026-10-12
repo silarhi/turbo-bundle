@@ -1,0 +1,81 @@
+---
+title: Frame-redirect following
+description: How TurboFrameListener turns a redirect issued inside a Turbo Frame into a full Drive visit.
+sidebar:
+    order: 1
+---
+
+import Flow from '@silarhi/docs-kit/components/Flow.astro'
+
+When a request made by a Turbo Frame gets a redirect, Turbo follows it and loads the target _inside the frame_. After
+a form submit, you usually want the whole page to go there instead. `TurboFrameListener` makes that the default,
+without any change to your controllers:
+
+<Flow
+    steps={[
+        { title: 'Turbo Frame', detail: 'POST, Turbo-Frame: project-edit' },
+        { title: 'Controller', detail: '302, Location: /projects/1' },
+        { title: 'TurboFrameListener', detail: '204, Turbo-Location: /projects/1', accent: true },
+        { title: 'Browser', detail: 'full Drive visit of /projects/1' },
+    ]}
+/>
+
+The browser side is the `turbo:before-fetch-response` listener of [`TurboHandler`](/javascript/turbo-handler/#following-redirects):
+it reads `Turbo-Location`, cancels the frame render and visits the URL.
+
+## When a redirect is converted
+
+The listener subscribes to `kernel.response`. It replaces the response with an empty `204 No Content` carrying a
+`Turbo-Location` header set to the original `Location` when:
+
+1. the response is a redirection (`3xx`) **with** a `Location` header: a `304 Not Modified` (a frame revalidated with
+   an `ETag`) is left alone,
+2. **and** one of:
+    - the request has a `Turbo-Frame` header but no `Turbo-Frame-Follow-Redirect` header,
+    - the request is a `DELETE` with an `X-Turbo-Request-Id` header (sent by Turbo with its requests), and
+      `follow_delete_redirects` is on.
+
+:::caution
+The `204` is a new response: headers set on the redirect response, cookies included, are not copied. Flash messages
+are not affected: they live in the session, whose cookie Symfony adds later in `kernel.response`.
+:::
+
+Any other response passes through unchanged.
+
+## `DELETE` redirects
+
+A `302` answered to a `DELETE` fetch is followed by the browser with the same `DELETE` method, on the redirect target.
+Converting the redirect into a `Turbo-Location` visit avoids that, for frame and non-frame Turbo requests alike.
+Turn it off with the [`follow_delete_redirects`](/reference/configuration/) option, or the `followDeleteRedirects`
+constructor argument [without the framework](/php/without-framework/):
+
+```yaml
+# config/packages/silarhi_turbo.yaml
+silarhi_turbo:
+    follow_delete_redirects: false
+```
+
+## Keeping a redirect in its frame
+
+Add `data-turbo-follow-redirect` to a `<turbo-frame>` to opt it out of the escalation: the handler sends a
+`Turbo-Frame-Follow-Redirect` header with that frame's requests, and `TurboFrameListener` leaves their redirects
+untouched. See [Keeping a redirect in its frame](/javascript/follow-redirect/).
+
+## Without `@silarhi/turbo`
+
+Something in the browser must follow the `Turbo-Location` header: on its own, Turbo receives an empty `204` and the
+frame does not change. If you don't use `TurboHandler`, add the equivalent listener:
+
+```js
+import * as Turbo from '@hotwired/turbo'
+
+document.addEventListener('turbo:before-fetch-response', (event) => {
+    const location = event.detail.fetchResponse.response.headers.get('Turbo-Location')
+    if (location) {
+        event.preventDefault()
+        Turbo.visit(location)
+    }
+})
+```
+
+The [HTTP headers reference](/reference/http-headers/) lists the whole contract between the two halves.

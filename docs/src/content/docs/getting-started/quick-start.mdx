@@ -1,0 +1,83 @@
+---
+title: Quick start
+description: Mount your widgets on every Turbo render, and turn redirects inside a frame into full page visits.
+sidebar:
+    order: 2
+---
+
+import Flow from '@silarhi/docs-kit/components/Flow.astro'
+
+This page wires both halves in a Symfony application with the bundle registered (see [Installation](/getting-started/installation/)).
+
+## 1. Start the handler
+
+In your JavaScript entry point, give `TurboHandler` the functions that set up and tear down your widgets (tooltips,
+selects, date pickers…) inside a container:
+
+```ts
+// assets/app.ts
+import '@hotwired/turbo'
+import { TurboHandler } from '@silarhi/turbo'
+
+const handler = new TurboHandler({
+    onMount: (container) => app.mount(container),
+    onUnmount: (container) => app.unmount(container),
+})
+
+handler.start() // attach listeners (idempotent)
+// handler.stop() // detach them all and reset
+```
+
+`app.mount()` and `app.unmount()` stand for your own code. `TurboHandler` decides _when_ and _on which element_ they
+run: the `<body>` on the first page load and after each Drive render, a frame after it loads, the nodes a Turbo Stream
+inserted or removed. Details: [TurboHandler](/javascript/turbo-handler/).
+
+## 2. Redirect out of a frame
+
+Without the bundle, a form inside a `<turbo-frame>` that redirects after a successful submit makes Turbo load the
+redirect target _inside the frame_. With the bundle and the handler, the redirect becomes a full page visit:
+
+```twig
+<turbo-frame id="project-edit">
+    {{ form(form) }}
+</turbo-frame>
+```
+
+```php
+#[Route('/projects/{id}/edit', name: 'project_edit')]
+public function edit(Project $project, Request $request): Response
+{
+    // ... handle the form
+    if ($form->isSubmitted() && $form->isValid()) {
+        return $this->redirectToRoute('project_show', ['id' => $project->getId()]);
+    }
+
+    return $this->render('project/edit.html.twig', ['form' => $form]);
+}
+```
+
+<Flow
+    steps={[
+        { title: 'Frame', detail: 'POST /projects/1/edit' },
+        { title: 'Controller', detail: '302, Location: /projects/1' },
+        { title: 'TurboFrameListener', detail: '204, Turbo-Location: /projects/1', accent: true },
+        { title: 'TurboHandler', detail: "Turbo.visit('/projects/1')" },
+    ]}
+/>
+
+The controller stays unaware of Turbo. To keep a frame's redirects inside it, add `data-turbo-follow-redirect` to the
+frame: see [Keeping a redirect in its frame](/javascript/follow-redirect/).
+
+## 3. Render a lean template inside frames
+
+With the `turbo_frame` filter, the same action renders the full page on a normal request and a lean layout when a
+frame asks for it:
+
+```twig
+{# templates/project/edit.html.twig #}
+{% extends 'base.html.twig'|turbo_frame('project-edit') %}
+```
+
+Inside the `project-edit` frame, the template extends `base-frame.html.twig` instead of `base.html.twig`: the filter
+looks for the `-frame` sibling of the template first, then falls back to the configured `base_template` (also
+`base-frame.html.twig` by default). See [The turbo_frame filter](/php/turbo-frame-filter/).

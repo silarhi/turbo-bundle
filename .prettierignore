@@ -3,3 +3,6 @@ vendor
 var
 assets/dist
 assets/node_modules
+docs/dist
+docs/.astro
+docs/node_modules

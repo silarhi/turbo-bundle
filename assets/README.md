@@ -5,6 +5,8 @@
 
 A tiny, framework-agnostic [Hotwire Turbo](https://turbo.hotwired.dev/) lifecycle orchestrator.
 
+📖 **[Documentation](https://turbo-bundle.silarhi.dev)**
+
 `TurboHandler` wires the Turbo **Drive / Frame / Stream** lifecycle to a single pair of
 `onMount` / `onUnmount` callbacks, so your per-container listeners (tooltips, selects, datepickers, …)
 initialise and clean up correctly across **every** Turbo navigation — including Stream / Mercure
@@ -82,7 +84,7 @@ page instead (the response is reused, no second request). Requires Turbo 7.2+.
 
 ## Symfony / PHP companion
 
-The matching PHP package **[`silarhi/turbo-bundle`](https://github.com/silarhi/turbo-bundle)** handles
+The matching PHP package **[`silarhi/turbo-bundle`](https://turbo-bundle.silarhi.dev/php/frame-redirects/)** handles
 the server side — it turns a redirect issued inside a Turbo Frame into a `204 + Turbo-Location`
 (escalating it to a full Drive visit, the contract `onRedirect` consumes) and ships a `turbo_frame`
 Twig filter. The two halves are usable independently.
