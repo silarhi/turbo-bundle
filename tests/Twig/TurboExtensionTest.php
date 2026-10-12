@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Silarhi\TurboBundle\Tests\Twig;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Silarhi\TurboBundle\TurboManager;
 use Silarhi\TurboBundle\Twig\TurboExtension;
@@ -113,6 +114,28 @@ class TurboExtensionTest extends TestCase
         $result = $this->extensionFor($request)->turboFrame($environment, 'project/show.html.twig');
 
         self::assertSame('project/show-frame.html.twig', $result);
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function provideTemplatesWithDots(): iterable
+    {
+        yield 'dot in a directory' => ['v1.2/page.html.twig', 'v1.2/page-frame.html.twig'];
+        yield 'dots in a namespaced path' => ['@App/admin.users/list.html.twig', '@App/admin.users/list-frame.html.twig'];
+        yield 'no extension' => ['partials/page', 'partials/page-frame'];
+    }
+
+    #[DataProvider('provideTemplatesWithDots')]
+    public function testFrameSiblingOnlyRenamesTheFileName(string $template, string $sibling): void
+    {
+        $request = new Request();
+        $request->headers->set('Turbo-Frame', 'main');
+
+        $environment = $this->environment($sibling);
+        $result = $this->extensionFor($request)->turboFrame($environment, $template);
+
+        self::assertSame($sibling, $result);
     }
 
     public function testExplicitBaseTemplateSkipsTheFrameSiblingConvention(): void
