@@ -12,6 +12,15 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 - `TurboHandler` option `visitOnFrameMissing`: when a frame response has no matching `<turbo-frame>`
   (`turbo:frame-missing`), render it as a full Drive visit instead of Turbo's "Content missing" error. Off by default.
 
+### Fixed
+
+- `TurboFrameListener` turned a `304 Not Modified` answered to a Turbo Frame request (a frame revalidated with an `ETag`
+  or `Last-Modified`) into a `204` with an empty `Turbo-Location`, so the frame rendered empty instead of its cached
+  copy. Only redirections carrying a `Location` header are converted now.
+- The `turbo_frame` filter's `-frame` sibling convention renamed the first dot of the whole path: for
+  `v1.2/page.html.twig` it looked for `v1-frame.2/page.html.twig` and fell back to the base template. It now inserts
+  `-frame` before the first dot of the file name (`v1.2/page-frame.html.twig`).
+
 ## [0.3.1] - 2026-10-01
 
 ### Fixed

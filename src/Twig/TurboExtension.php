@@ -67,9 +67,10 @@ final class TurboExtension extends AbstractExtension
         }
 
         if (null === $baseTemplate) {
-            $frameTemplateParts = explode('.', $template);
-            $frameTemplateParts[0] .= '-frame';
-            $frameTemplate = implode('.', $frameTemplateParts);
+            // Before the first dot of the file name, not of the path: "v1.2/page.html.twig" → "v1.2/page-frame.html.twig"
+            $slash = strrpos($template, '/');
+            $dot = strpos($template, '.', false === $slash ? 0 : $slash + 1);
+            $frameTemplate = false === $dot ? $template . '-frame' : substr_replace($template, '-frame', $dot, 0);
             if ($environment->getLoader()->exists($frameTemplate)) {
                 return $frameTemplate;
             }

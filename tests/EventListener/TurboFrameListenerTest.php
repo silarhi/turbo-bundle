@@ -66,6 +66,29 @@ class TurboFrameListenerTest extends TestCase
         self::assertTrue($event->getResponse()->isRedirection());
     }
 
+    public function testNotModifiedResponseIsLeftUntouched(): void
+    {
+        // A frame revalidated with an ETag: the browser must get the 304 to reuse its cached copy
+        $request = new Request(server: ['HTTP_IF_NONE_MATCH' => '"v1"']);
+        $request->headers->set('Turbo-Frame', 'my_frame');
+        $original = (new Response('frame'))->setEtag('v1');
+        self::assertTrue($original->isNotModified($request));
+
+        $event = $this->dispatch($request, $original);
+        self::assertSame($original, $event->getResponse());
+        self::assertSame(Response::HTTP_NOT_MODIFIED, $event->getResponse()->getStatusCode());
+    }
+
+    public function testRedirectionWithoutLocationIsLeftUntouched(): void
+    {
+        $request = new Request();
+        $request->headers->set('Turbo-Frame', 'my_frame');
+        $original = new Response('choose', Response::HTTP_MULTIPLE_CHOICES);
+
+        $event = $this->dispatch($request, $original);
+        self::assertSame($original, $event->getResponse());
+    }
+
     public function testNonRedirectResponseIsLeftUntouched(): void
     {
         $request = new Request();

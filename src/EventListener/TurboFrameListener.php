@@ -49,7 +49,8 @@ final readonly class TurboFrameListener implements EventSubscriberInterface
     public function onKernelResponse(ResponseEvent $event): void
     {
         $response = $event->getResponse();
-        if (!$response->isRedirection()) {
+        // Only redirects to somewhere: a 304 Not Modified (frame revalidated with an ETag) is a 3xx without Location
+        if (!$response->isRedirection() || !$response->headers->has('Location')) {
             return;
         }
 
