@@ -20,7 +20,8 @@ public function __construct(RequestStack $requestStack)
 | `followTurboFrameRedirect(): bool` | Whether a redirect should be escalated: a `Turbo-Frame` header and no `Turbo-Frame-Follow-Redirect` header. |
 | `isTurboRequest(): bool`           | Whether the request has an `X-Turbo-Request-Id` header, which Turbo sends with its fetch requests.          |
 
-Every method throws a `RuntimeException` ("No request available") when the stack has no current request.
+Without a current request on the stack (a console command, a message handler, an email rendered outside a request),
+every method answers as for a plain request: `false`, or `null` for `getTurboFrameId()`.
 
 Inject it in a controller to branch on frame requests yourself:
 
@@ -44,10 +45,10 @@ to any Symfony event dispatcher.
 public function __construct(TurboManager $turboManager, bool $followDeleteRedirects = true)
 ```
 
-| Method                                         | Effect                                                                                                           |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `getSubscribedEvents(): array` (static)        | `kernel.response` → `onKernelResponse`, default priority.                                                        |
-| `onKernelResponse(ResponseEvent $event): void` | Replaces a redirect with a `204 + Turbo-Location` ([rules](/php/frame-redirects/#when-a-redirect-is-converted)). |
+| Method                                         | Effect                                                                                                                                                  |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getSubscribedEvents(): array` (static)        | `kernel.response` → `onKernelResponse`, default priority.                                                                                               |
+| `onKernelResponse(ResponseEvent $event): void` | Replaces a redirect with a `204 + Turbo-Location`, keeping its other headers and cookies ([rules](/php/frame-redirects/#when-a-redirect-is-converted)). |
 
 ## `TurboExtension`
 

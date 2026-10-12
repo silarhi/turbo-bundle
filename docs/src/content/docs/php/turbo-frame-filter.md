@@ -37,12 +37,13 @@ Omit the frame id (`'project/show.html.twig'|turbo_frame`) to match **any** Turb
 
 ## Resolution
 
-| Request                                                     | Returned template                                           |
-| ----------------------------------------------------------- | ----------------------------------------------------------- |
-| No `Turbo-Frame` header, or another frame id than `frameId` | `template`                                                  |
-| Matching frame, `baseTemplate` given                        | `baseTemplate`                                              |
-| Matching frame, the `-frame` sibling of `template` exists   | the sibling                                                 |
-| Matching frame, otherwise                                   | the configured [`base_template`](/reference/configuration/) |
+| Request                                                      | Returned template                                           |
+| ------------------------------------------------------------ | ----------------------------------------------------------- |
+| No `Turbo-Frame` header, or another frame id than `frameId`  | `template`                                                  |
+| No current request (console command, email, message handler) | `template`                                                  |
+| Matching frame, `baseTemplate` given                         | `baseTemplate`                                              |
+| Matching frame, the `-frame` sibling of `template` exists    | the sibling                                                 |
+| Matching frame, otherwise                                    | the configured [`base_template`](/reference/configuration/) |
 
 ## The `-frame` sibling convention
 

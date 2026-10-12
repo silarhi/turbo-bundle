@@ -41,15 +41,18 @@ _when_ and _on which element_, you decide _what_.
 
 ## Options
 
-| Option                | Type                                       | Default            | Purpose                                                                              |
-| --------------------- | ------------------------------------------ | ------------------ | ------------------------------------------------------------------------------------ |
-| `onMount`             | `(container: Element \| Document) => void` | —                  | Init your listeners on a freshly rendered / inserted element.                        |
-| `onUnmount`           | `(container: Element \| Document) => void` | —                  | Tear them down before the element leaves the DOM.                                    |
-| `getContainer`        | `(document: Document) => Element`          | `document.body`    | Root element a full Drive render mounts on.                                          |
-| `onRedirect`          | `(url: string) => void`                    | `Turbo.visit(url)` | Follow a server `Turbo-Location` redirect.                                           |
-| `streamMutations`     | `boolean`                                  | `true`             | Diff the DOM around each Turbo Stream render and mount/unmount the nodes it touched. |
-| `morphMutations`      | `boolean`                                  | `false`            | Handle Drive/Frame **morph** renders per-node via `turbo:morph-element`.             |
-| `visitOnFrameMissing` | `boolean`                                  | `false`            | Render a frame response with no matching `<turbo-frame>` as a full Drive visit.      |
+| Option                | Type                              | Default             | Purpose                                                                              |
+| --------------------- | --------------------------------- | ------------------- | ------------------------------------------------------------------------------------ |
+| `onMount`             | `(container: Element) => void`    | —                   | Init your listeners on a freshly rendered / inserted element.                        |
+| `onUnmount`           | `(container: Element) => void`    | —                   | Tear them down before the element leaves the DOM.                                    |
+| `getContainer`        | `(document: Document) => Element` | `document.body`     | Root element a full Drive render mounts on.                                          |
+| `onRedirect`          | `(url: string) => void`           | `Turbo.visit(url)`¹ | Follow a server `Turbo-Location` redirect.                                           |
+| `streamMutations`     | `boolean`                         | `true`              | Diff the DOM around each Turbo Stream render and mount/unmount the nodes it touched. |
+| `morphMutations`      | `boolean`                         | `false`             | Handle Drive/Frame **morph** renders per-node via `turbo:morph-element`.             |
+| `visitOnFrameMissing` | `boolean`                         | `false`             | Render a frame response with no matching `<turbo-frame>` as a full Drive visit.      |
+
+¹ `window.Turbo.visit(url)`; without the `Turbo` global, a full page load with `window.location.assign(url)` and a
+console warning.
 
 `start()` and `stop()` attach and detach all document listeners and are both idempotent.
 

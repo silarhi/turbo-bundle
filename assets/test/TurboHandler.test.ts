@@ -10,7 +10,7 @@
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 import { TurboHandler } from '../src/index'
 
-type Lifecycle = (container: Element | Document) => void
+type Lifecycle = (container: Element) => void
 
 function fire<T>(type: string, detail?: T): CustomEvent<T> {
     const event = new CustomEvent(type, { detail, cancelable: true })
@@ -98,6 +98,48 @@ describe('TurboHandler', () => {
 
         expect(onRedirect).toHaveBeenCalledWith('/next')
         expect(event.defaultPrevented).toBe(true)
+    })
+
+    describe('default onRedirect', () => {
+        const headers = () => new Headers({ 'Turbo-Location': '/next' })
+
+        afterEach(() => {
+            vi.unstubAllGlobals()
+            vi.restoreAllMocks()
+            delete window.Turbo
+        })
+
+        it('visits the Turbo-Location with the Turbo global', () => {
+            const visit = vi.fn<(location: string) => void>()
+            window.Turbo = { visit }
+
+            fire('turbo:before-fetch-response', { fetchResponse: { response: { headers: headers() } } })
+
+            expect(visit).toHaveBeenCalledWith('/next')
+        })
+
+        it('falls back to a full page load and warns without the Turbo global', () => {
+            const assign = vi.fn<(url: string) => void>()
+            vi.stubGlobal('location', { assign })
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+            const event = fire('turbo:before-fetch-response', { fetchResponse: { response: { headers: headers() } } })
+
+            expect(assign).toHaveBeenCalledWith('/next')
+            expect(warn).toHaveBeenCalledOnce()
+            expect(event.defaultPrevented).toBe(true)
+        })
+    })
+
+    it('accepts callbacks typed for Element | Document', () => {
+        // BC: the callbacks used to be typed (container: Element | Document) => void
+        const wide = vi.fn<(container: Element | Document) => void>()
+        handler.stop()
+        handler = new TurboHandler({ onMount: wide, onUnmount: wide })
+        handler.start()
+
+        fire('turbo:load')
+        expect(wide).toHaveBeenCalledWith(document.body)
     })
 
     it('visits the response of a missing frame when visitOnFrameMissing is enabled', () => {

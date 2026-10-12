@@ -30,22 +30,24 @@ The listener subscribes to `kernel.response`. It replaces the response with an e
 
 1. the response is a redirection (`3xx`) **with** a `Location` header: a `304 Not Modified` (a frame revalidated with
    an `ETag`) is left alone,
-2. **and** one of:
-    - the request has a `Turbo-Frame` header but no `Turbo-Frame-Follow-Redirect` header,
+2. **and** the request has no `Turbo-Frame-Follow-Redirect` header
+   ([the frame keeps its redirects](#keeping-a-redirect-in-its-frame)),
+3. **and** one of:
+    - the request has a `Turbo-Frame` header,
     - the request is a `DELETE` with an `X-Turbo-Request-Id` header (sent by Turbo with its requests), and
       `follow_delete_redirects` is on.
 
-:::caution
-The `204` is a new response: headers set on the redirect response, cookies included, are not copied. Flash messages
-are not affected: they live in the session, whose cookie Symfony adds later in `kernel.response`.
-:::
+The `204` keeps the headers of the redirect response, cookies and `Cache-Control` included: only the status, the
+`Location` header (moved to `Turbo-Location`) and the body headers (`Content-Type`, `Content-Length`) change. Flash
+messages live in the session, whose cookie Symfony adds later in `kernel.response`.
 
 Any other response passes through unchanged.
 
 ## `DELETE` redirects
 
 A `302` answered to a `DELETE` fetch is followed by the browser with the same `DELETE` method, on the redirect target.
-Converting the redirect into a `Turbo-Location` visit avoids that, for frame and non-frame Turbo requests alike.
+Converting the redirect into a `Turbo-Location` visit avoids that, for frame and non-frame Turbo requests alike, except
+for frames that [keep their redirects](#keeping-a-redirect-in-its-frame).
 Turn it off with the [`follow_delete_redirects`](/reference/configuration/) option, or the `followDeleteRedirects`
 constructor argument [without the framework](/php/without-framework/):
 
@@ -58,8 +60,8 @@ silarhi_turbo:
 ## Keeping a redirect in its frame
 
 Add `data-turbo-follow-redirect` to a `<turbo-frame>` to opt it out of the escalation: the handler sends a
-`Turbo-Frame-Follow-Redirect` header with that frame's requests, and `TurboFrameListener` leaves their redirects
-untouched. See [Keeping a redirect in its frame](/javascript/follow-redirect/).
+`Turbo-Frame-Follow-Redirect` header with that frame's requests, and `TurboFrameListener` leaves all their redirects
+untouched, `DELETE` ones included. See [Keeping a redirect in its frame](/javascript/follow-redirect/).
 
 ## Without `@silarhi/turbo`
 

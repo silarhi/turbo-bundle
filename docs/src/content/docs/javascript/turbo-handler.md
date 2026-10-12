@@ -27,8 +27,8 @@ _what_.
 
 ## Writing the callbacks
 
-- The callbacks are typed `(container: Element | Document) => void`, so an existing `mount(document)` function fits;
-  the handler itself always passes an element.
+- The callbacks are typed `(container: Element) => void`: the handler always passes an element. A function typed
+  `(container: Element | Document) => void`, such as an existing `mount(root = document)`, fits too.
 - The container can be the `<body>`, a `<turbo-frame>`, or a single node a Stream inserted. Look for your widgets
   _inside_ the container **and on the container itself**: a Stream that appends `<select data-choices>` passes the
   `<select>`.
@@ -84,7 +84,8 @@ new TurboHandler({
 
 When a response carries a `Turbo-Location` header, the handler cancels Turbo's handling of the response and calls
 `onRedirect` with its value. The default visits it with `window.Turbo.visit(url)`, the global `@hotwired/turbo` sets
-when imported. Pass your own function to log the redirect, or to visit with options:
+when imported. Without that global, it falls back to a full page load (`window.location.assign(url)`) and logs a
+warning, so the redirect is never lost. Pass your own function to log the redirect, or to visit with options:
 
 ```ts
 import * as Turbo from '@hotwired/turbo'

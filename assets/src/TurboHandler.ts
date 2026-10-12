@@ -14,10 +14,14 @@ declare global {
 }
 
 export interface TurboHandlerOptions {
-    /** Mount your per-container listeners on a freshly rendered/inserted element. */
-    onMount: (container: Element | Document) => void
+    /**
+     * Mount your per-container listeners on a freshly rendered/inserted element:
+     * the `getContainer` element, a `<turbo-frame>`, or a node a Stream inserted.
+     * A wider `(container: Element | Document) => void` function fits too.
+     */
+    onMount: (container: Element) => void
     /** Tear down the listeners previously mounted on a container before it leaves the DOM. */
-    onUnmount: (container: Element | Document) => void
+    onUnmount: (container: Element) => void
     /**
      * Resolve the root element a full Turbo Drive render mounts on.
      * Defaults to `document.body`.
@@ -25,7 +29,9 @@ export interface TurboHandlerOptions {
     getContainer?: (document: Document) => Element
     /**
      * Follow a server-issued `Turbo-Location` redirect (pairs with the PHP
-     * `TurboFrameListener`). Defaults to `Turbo.visit(url)`.
+     * `TurboFrameListener`). Defaults to `window.Turbo.visit(url)`, or to a full
+     * page load (`window.location.assign(url)`, with a console warning) when the
+     * `Turbo` global is missing.
      */
     onRedirect?: (url: string) => void
     /**
@@ -97,6 +103,19 @@ const LOCATION_HEADER = 'Turbo-Location'
 const FOLLOW_REDIRECT_ATTRIBUTE = 'data-turbo-follow-redirect'
 const MORPH_RENDER_METHOD = 'morph'
 
+// Default `onRedirect`: a Drive visit through the global `@hotwired/turbo` sets
+// when imported. Without it, a full page load still reaches the target, where
+// doing nothing would leave the page as it was after the response was cancelled.
+function visit(url: string): void {
+    if (window.Turbo) {
+        window.Turbo.visit(url)
+        return
+    }
+
+    console.warn(`@silarhi/turbo: window.Turbo is not defined, loading ${url} without Turbo Drive.`)
+    window.location.assign(url)
+}
+
 /**
  * Wires the Turbo Drive / Frame / Stream lifecycle to a single pair of
  * mount/unmount callbacks, so framework code stays project-agnostic.
@@ -106,8 +125,8 @@ const MORPH_RENDER_METHOD = 'morph'
  * onto `onMount` / `onUnmount`.
  */
 export class TurboHandler {
-    readonly #onMount: (container: Element | Document) => void
-    readonly #onUnmount: (container: Element | Document) => void
+    readonly #onMount: (container: Element) => void
+    readonly #onUnmount: (container: Element) => void
     readonly #getContainer: (document: Document) => Element
     readonly #onRedirect: (url: string) => void
     readonly #streamMutations: boolean
@@ -127,7 +146,7 @@ export class TurboHandler {
         this.#onMount = options.onMount
         this.#onUnmount = options.onUnmount
         this.#getContainer = options.getContainer ?? ((document) => document.body)
-        this.#onRedirect = options.onRedirect ?? ((url) => window.Turbo?.visit(url))
+        this.#onRedirect = options.onRedirect ?? visit
         this.#streamMutations = options.streamMutations ?? true
         this.#morphMutations = options.morphMutations ?? false
         this.#visitOnFrameMissing = options.visitOnFrameMissing ?? false
