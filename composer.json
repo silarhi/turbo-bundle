@@ -1,14 +1,13 @@
 {
     "name": "silarhi/turbo-bundle",
-    "description": "Framework-agnostic Hotwire Turbo frame-redirect following for Symfony — the PHP companion to @silarhi/turbo",
+    "description": "Framework-agnostic Hotwire Turbo frame-redirect following and turbo_frame Twig filter for Symfony — the PHP companion to @silarhi/turbo",
     "license": "MIT",
     "type": "library",
     "keywords": [
         "turbo",
         "hotwire",
         "symfony",
-        "turbo-frame",
-        "turbo-stream"
+        "turbo-frame"
     ],
     "authors": [
         {

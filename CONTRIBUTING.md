@@ -12,6 +12,9 @@ The repository holds two packages released from the same git tag: the Composer p
 # PHP half
 composer install
 
+# Repository tooling: husky pre-commit hook, lint-staged, Prettier
+yarn install
+
 # JS half
 cd assets
 yarn install
@@ -19,8 +22,9 @@ yarn install
 
 ## Quality checks
 
-The CI runs them all: the PHP checks on every supported PHP and Symfony version, the JS checks on Node 24. Make sure
-your changes pass before submitting a pull request:
+The CI runs PHPUnit on PHP 8.2 to 8.5, each with the lowest and the latest allowed dependencies; PHPStan, PHP CS
+Fixer and the `composer.json` checks on PHP 8.2; the JS checks on Node 24. Make sure your changes pass before
+submitting a pull request:
 
 ```bash
 composer test && vendor/bin/phpstan analyse && vendor/bin/php-cs-fixer fix --dry-run --diff && (cd assets && yarn lint && yarn typecheck && yarn test)
@@ -38,7 +42,7 @@ vendor/bin/phpstan analyse
 # Code style (drop --dry-run --diff to fix)
 vendor/bin/php-cs-fixer fix --dry-run --diff
 
-# Code modernization (drop --dry-run to apply)
+# Code modernization, not run by the CI (drop --dry-run to apply)
 vendor/bin/rector process --dry-run
 
 # composer.json

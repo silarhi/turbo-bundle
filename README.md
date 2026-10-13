@@ -63,7 +63,7 @@ The two halves solve different problems and only meet on redirect following (the
 ## Requirements
 
 - PHP 8.2+ and Symfony components 6.4, 7.x or 8.x
-- `@hotwired/turbo` 7.1+ or 8.x for `@silarhi/turbo`
+- `@hotwired/turbo` 7.1+ or 8.x for `@silarhi/turbo` (following `DELETE` redirects outside a frame needs Turbo 8)
 
 ## Installation
 
@@ -92,7 +92,9 @@ new TurboHandler({
 ```
 
 Your widgets now mount and unmount on every Turbo render, and a redirect answered to a frame request becomes a full
-page visit. Render a lean layout inside frames with `{% extends 'base.html.twig'|turbo_frame('main') %}`.
+page visit. Render a lean layout inside frames with `{% extends 'base.html.twig'|turbo_frame('main') %}`, after
+creating that layout in `templates/base-frame.html.twig` (see the
+[quick start](https://turbo-bundle.silarhi.dev/getting-started/quick-start/#3-render-a-lean-template-inside-frames)).
 
 ## Documentation
 
