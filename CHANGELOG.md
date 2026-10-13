@@ -9,6 +9,11 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 
 ## [0.5.0] - 2026-10-12
 
+### Added
+
+- Documentation site: [turbo-bundle.silarhi.dev](https://turbo-bundle.silarhi.dev). The README is now a short landing
+  page linking to it.
+
 ### Changed
 
 - `TurboManager` no longer throws a `RuntimeException` ("No request available") when the `RequestStack` has no current
@@ -29,8 +34,6 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 - `@silarhi/turbo`: without the `window.Turbo` global, the default `onRedirect` did nothing, leaving the page unchanged
   after cancelling the response. It now falls back to a full page load (`window.location.assign(url)`) and logs a
   warning.
-- The `husky` pre-commit hook was never installed (no `.husky/pre-commit`): it now runs `lint-staged`, which also formats
-  the documentation's `.mdx` files and runs Biome on `assets/` with its own configuration.
 
 ## [0.4.1] - 2026-10-12
 

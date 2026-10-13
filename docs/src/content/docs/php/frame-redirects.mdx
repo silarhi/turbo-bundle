@@ -34,8 +34,8 @@ The listener subscribes to `kernel.response`. It replaces the response with an e
    ([the frame keeps its redirects](#keeping-a-redirect-in-its-frame)),
 3. **and** one of:
     - the request has a `Turbo-Frame` header,
-    - the request is a `DELETE` with an `X-Turbo-Request-Id` header (sent by Turbo with its requests), and
-      `follow_delete_redirects` is on.
+    - the request is a `DELETE` with an `X-Turbo-Request-Id` header (sent by Turbo 8 with its requests, not by
+      Turbo 7), and `follow_delete_redirects` is on.
 
 The `204` keeps the headers of the redirect response, cookies and `Cache-Control` included: only the status, the
 `Location` header (moved to `Turbo-Location`) and the body headers (`Content-Type`, `Content-Length`) change. Flash
@@ -48,6 +48,12 @@ Any other response passes through unchanged.
 A `302` answered to a `DELETE` fetch is followed by the browser with the same `DELETE` method, on the redirect target.
 Converting the redirect into a `Turbo-Location` visit avoids that, for frame and non-frame Turbo requests alike, except
 for frames that [keep their redirects](#keeping-a-redirect-in-its-frame).
+
+:::caution[Turbo 7]
+A `DELETE` outside a frame is recognized as a Turbo request by its `X-Turbo-Request-Id` header, which Turbo sends
+since 8.0. With Turbo 7, only `DELETE` requests from a frame (with a `Turbo-Frame` header) are converted: answer the
+others with a `303 See Other` so the browser follows them with a `GET`.
+:::
 Turn it off with the [`follow_delete_redirects`](/reference/configuration/) option, or the `followDeleteRedirects`
 constructor argument [without the framework](/php/without-framework/):
 

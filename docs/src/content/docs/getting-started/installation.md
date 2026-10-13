@@ -20,7 +20,9 @@ The repository ships two packages, released from the same git tag. Install one, 
 | Symfony components (config, dependency-injection, event-dispatcher, http-foundation, http-kernel)        | 6.4 / 7.x / 8.x |
 | [`@hotwired/turbo`](https://www.npmjs.com/package/@hotwired/turbo) (peer dependency of `@silarhi/turbo`) | 7.1+ / 8.x      |
 
-`visitOnFrameMissing` needs Turbo 7.2+, and morph renders exist since Turbo 8.
+`visitOnFrameMissing` needs Turbo 7.2+, and morph renders exist since Turbo 8. Following `DELETE` redirects outside a
+frame also needs Turbo 8: the bundle recognizes these requests by the `X-Turbo-Request-Id` header, which Turbo 7 does
+not send ([`DELETE` redirects](/php/frame-redirects/#delete-redirects)).
 
 ### Optional dependencies
 
@@ -35,8 +37,14 @@ The repository ships two packages, released from the same git tag. Install one, 
 yarn add @silarhi/turbo
 ```
 
-`@hotwired/turbo` is a peer dependency: a Turbo application already has it. The package is an ES module with its
-TypeScript declarations. Continue with [TurboHandler](/javascript/turbo-handler/).
+With [AssetMapper](https://symfony.com/doc/current/frontend/asset_mapper.html), add it to the import map instead:
+
+```bash
+php bin/console importmap:require @silarhi/turbo
+```
+
+`@hotwired/turbo` is a peer dependency: a Turbo application already has it. The package does not import it, so the
+import map gets a single entry. The package is an ES module with its TypeScript declarations. Continue with [TurboHandler](/javascript/turbo-handler/).
 
 ## PHP half
 

@@ -15,7 +15,7 @@ In your JavaScript entry point, give `TurboHandler` the functions that set up an
 selects, date pickers…) inside a container:
 
 ```ts
-// assets/app.ts
+// assets/app.js (assets/app.ts with TypeScript)
 import '@hotwired/turbo'
 import { TurboHandler } from '@silarhi/turbo'
 
@@ -80,4 +80,14 @@ frame asks for it:
 
 Inside the `project-edit` frame, the template extends `base-frame.html.twig` instead of `base.html.twig`: the filter
 looks for the `-frame` sibling of the template first, then falls back to the configured `base_template` (also
-`base-frame.html.twig` by default). See [The turbo_frame filter](/php/turbo-frame-filter/).
+`base-frame.html.twig` by default). Create that layout, or frame requests fail with "Unable to find template". It
+needs a `<turbo-frame>` with the id of the requesting frame, and the blocks your pages fill:
+
+```twig
+{# templates/base-frame.html.twig #}
+<turbo-frame id="{{ app.request.headers.get('Turbo-Frame') }}">
+    {% block body %}{% endblock %}
+</turbo-frame>
+```
+
+See [The turbo_frame filter](/php/turbo-frame-filter/).

@@ -1,7 +1,7 @@
 {
     "name": "@silarhi/turbo",
     "description": "Framework-agnostic Hotwire Turbo lifecycle orchestrator — mount/unmount your listeners across Turbo Drive, Frames and Streams",
-    "version": "0.1.1",
+    "version": "0.0.0-development",
     "license": "MIT",
     "author": "SILARHI <dev@silarhi.fr>",
     "homepage": "https://turbo-bundle.silarhi.dev",

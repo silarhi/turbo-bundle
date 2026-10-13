@@ -14,10 +14,10 @@ silarhi_turbo:
     follow_delete_redirects: true # convert DELETE-request redirects to a Turbo-Location visit
 ```
 
-| Option                    | Type    | Default                  | Effect                                                                                                                                                                                                               |
-| ------------------------- | ------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `base_template`           | string  | `'base-frame.html.twig'` | Template the [`turbo_frame` filter](/php/turbo-frame-filter/) returns inside a matching frame, when neither a base template argument nor a `-frame` sibling applies. Cannot be empty.                                |
-| `follow_delete_redirects` | boolean | `true`                   | Convert a redirect answered to a Turbo `DELETE` request into a `Turbo-Location` visit ([`DELETE` redirects](/php/frame-redirects/#delete-redirects)). Frames with `data-turbo-follow-redirect` keep their redirects. |
+| Option                    | Type    | Default                  | Effect                                                                                                                                                                                                                                                |
+| ------------------------- | ------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `base_template`           | string  | `'base-frame.html.twig'` | Template the [`turbo_frame` filter](/php/turbo-frame-filter/) returns inside a matching frame, when neither a base template argument nor a `-frame` sibling applies. Cannot be empty.                                                                 |
+| `follow_delete_redirects` | boolean | `true`                   | Convert a redirect answered to a Turbo `DELETE` request into a `Turbo-Location` visit ([`DELETE` redirects](/php/frame-redirects/#delete-redirects)). Outside a frame, needs Turbo 8+. Frames with `data-turbo-follow-redirect` keep their redirects. |
 
 Unknown keys are rejected.
 
