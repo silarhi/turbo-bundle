@@ -34,7 +34,7 @@ not send ([`DELETE` redirects](/php/frame-redirects/#delete-redirects)).
 ## JavaScript half
 
 ```bash
-yarn add @silarhi/turbo
+pnpm add @silarhi/turbo
 ```
 
 With [AssetMapper](https://symfony.com/doc/current/frontend/asset_mapper.html), add it to the import map instead:

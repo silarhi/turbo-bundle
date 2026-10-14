@@ -8,6 +8,7 @@
 /CONTRIBUTING.md export-ignore
 /docs export-ignore
 /package.json export-ignore
+/pnpm-lock.yaml export-ignore
 /phpstan.neon export-ignore
 /phpunit.xml.dist export-ignore
 /rector.php export-ignore
@@ -17,4 +18,4 @@
 /assets/biome.json export-ignore
 /assets/test export-ignore
 /assets/vitest.config.ts export-ignore
-/assets/yarn.lock export-ignore
+/assets/pnpm-lock.yaml export-ignore
