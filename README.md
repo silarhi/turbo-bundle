@@ -69,7 +69,7 @@ The two halves solve different problems and only meet on redirect following (the
 
 ```bash
 composer require silarhi/turbo-bundle # PHP half
-yarn add @silarhi/turbo               # JS half
+pnpm add @silarhi/turbo               # JS half
 ```
 
 ```php

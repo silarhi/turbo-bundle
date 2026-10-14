@@ -61,18 +61,22 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v7
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v6
+              with:
+                  package_json_file: 'assets/package.json'
             - name: Setup Node.js
               uses: actions/setup-node@v7
               with:
                   node-version: '24'
-                  cache: 'yarn'
-                  cache-dependency-path: 'assets/yarn.lock'
+                  cache: 'pnpm'
+                  cache-dependency-path: 'assets/pnpm-lock.yaml'
             - name: Install dependencies
-              run: yarn install --frozen-lockfile
+              run: pnpm install --frozen-lockfile
             - name: Biome
-              run: yarn lint
+              run: pnpm lint
             - name: Typecheck
-              run: yarn typecheck
+              run: pnpm typecheck
 
     test:
         name: Test
@@ -84,16 +88,20 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v7
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v6
+              with:
+                  package_json_file: 'assets/package.json'
             - name: Setup Node.js
               uses: actions/setup-node@v7
               with:
                   node-version: '24'
-                  cache: 'yarn'
-                  cache-dependency-path: 'assets/yarn.lock'
+                  cache: 'pnpm'
+                  cache-dependency-path: 'assets/pnpm-lock.yaml'
             - name: Install dependencies
-              run: yarn install --frozen-lockfile
+              run: pnpm install --frozen-lockfile
             - name: Test
-              run: yarn test
+              run: pnpm test
 
     build:
         name: Build
@@ -105,16 +113,20 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v7
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v6
+              with:
+                  package_json_file: 'assets/package.json'
             - name: Setup Node.js
               uses: actions/setup-node@v7
               with:
                   node-version: '24'
-                  cache: 'yarn'
-                  cache-dependency-path: 'assets/yarn.lock'
+                  cache: 'pnpm'
+                  cache-dependency-path: 'assets/pnpm-lock.yaml'
             - name: Install dependencies
-              run: yarn install --frozen-lockfile
+              run: pnpm install --frozen-lockfile
             - name: Build
-              run: yarn build
+              run: pnpm build
 
     coverage:
         name: Coverage

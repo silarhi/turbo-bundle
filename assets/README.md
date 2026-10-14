@@ -15,7 +15,7 @@ mutations and morphs, which fire no render event of their own.
 ## Installation
 
 ```bash
-yarn add @silarhi/turbo
+pnpm add @silarhi/turbo
 # or: npm install @silarhi/turbo
 ```
 

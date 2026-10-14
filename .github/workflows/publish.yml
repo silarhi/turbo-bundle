@@ -43,14 +43,18 @@ jobs:
               with:
                   ref: ${{ github.event.release.tag_name || inputs.tag }}
 
+            - uses: pnpm/action-setup@v6
+              with:
+                  package_json_file: assets/package.json
+
             - uses: actions/setup-node@v7
               with:
                   node-version: '24'
                   # No `registry-url`: it writes an .npmrc with `${NODE_AUTH_TOKEN}`, which
-                  # setup-node v7 no longer stubs, so yarn fails to read it. OIDC publishing
+                  # setup-node v7 no longer stubs, so pnpm fails to read it. OIDC publishing
                   # targets the default registry without any .npmrc.
-                  cache: yarn
-                  cache-dependency-path: assets/yarn.lock
+                  cache: pnpm
+                  cache-dependency-path: assets/pnpm-lock.yaml
 
             # The release tag is the single source of truth for the version —
             # no manual package.json bump. Both `vX.Y.Z` and `X.Y.Z` tags work.
@@ -60,23 +64,19 @@ jobs:
                   TAG: ${{ github.event.release.tag_name || inputs.tag }}
 
             - name: Install dependencies
-              run: yarn install --frozen-lockfile
+              run: pnpm install --frozen-lockfile
 
             - name: Verify (lint, typecheck, test)
               run: |
-                  yarn lint
-                  yarn typecheck
-                  yarn test
+                  pnpm lint
+                  pnpm typecheck
+                  pnpm test
 
             - name: Build
-              run: yarn build
+              run: pnpm build
 
-            # Trusted Publishing (OIDC) needs npm >= 11.5.1. Pinned to a major so a new
-            # npm major is an explicit change, not something picked up mid-release.
-            - name: Upgrade npm
-              run: npm install -g npm@12
-
-            # No NODE_AUTH_TOKEN: npm exchanges the OIDC id-token with the registry.
+            # No NODE_AUTH_TOKEN: pnpm exchanges the OIDC id-token with the registry.
+            # --no-git-checks: the release tag is checked out detached, not on `main`.
             # npm versions are immutable, so skip (don't red-fail) if this version
             # is already published — makes re-running a release a safe no-op.
             - name: Publish
@@ -86,4 +86,4 @@ jobs:
                       echo "@silarhi/turbo@${version} is already published — skipping."
                       exit 0
                   fi
-                  npm publish --provenance --access public
+                  pnpm publish --provenance --access public --no-git-checks

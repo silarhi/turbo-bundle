@@ -13,12 +13,14 @@ The repository holds two packages released from the same git tag: the Composer p
 composer install
 
 # Repository tooling: husky pre-commit hook, lint-staged, Prettier
-yarn install
+pnpm install
 
 # JS half
 cd assets
-yarn install
+pnpm install
 ```
+
+The JS packages use [pnpm](https://pnpm.io), its version pinned by `packageManager` in each `package.json`.
 
 ## Quality checks
 
@@ -27,7 +29,7 @@ Fixer and the `composer.json` checks on PHP 8.2; the JS checks on Node 24. Make 
 submitting a pull request:
 
 ```bash
-composer test && vendor/bin/phpstan analyse && vendor/bin/php-cs-fixer fix --dry-run --diff && (cd assets && yarn lint && yarn typecheck && yarn test)
+composer test && vendor/bin/phpstan analyse && vendor/bin/php-cs-fixer fix --dry-run --diff && (cd assets && pnpm lint && pnpm typecheck && pnpm test)
 ```
 
 ### PHP half
@@ -53,10 +55,10 @@ composer normalize --dry-run --diff
 ### JS half (in `assets/`)
 
 ```bash
-yarn test        # vitest (yarn test:watch to rerun on change)
-yarn lint        # biome (yarn lint:fix to apply fixes)
-yarn typecheck   # tsc --noEmit
-yarn build       # tsdown → dist/
+pnpm test        # vitest (pnpm test:watch to rerun on change)
+pnpm lint        # biome (pnpm lint:fix to apply fixes)
+pnpm typecheck   # tsc --noEmit
+pnpm build       # tsdown → dist/
 ```
 
 ## Releases
@@ -72,8 +74,8 @@ The documentation site, [turbo-bundle.silarhi.dev](https://turbo-bundle.silarhi.
 
 ```bash
 cd docs
-yarn install
-yarn dev # http://localhost:4321
+pnpm install
+pnpm dev # http://localhost:4321
 ```
 
 Pull requests touching `docs/` build the site; it is published once merged into `main`. Keep `README.md` and
