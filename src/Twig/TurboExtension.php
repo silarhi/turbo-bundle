@@ -17,6 +17,7 @@ use Silarhi\TurboBundle\TurboManager;
 use Twig\Environment;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
+use Twig\TwigFunction;
 
 /**
  * Adds the `turbo_frame` filter: pick the lean frame template when the current
@@ -31,6 +32,14 @@ use Twig\TwigFilter;
  * template to skip the convention lookup:
  *
  *     {% extends 'page.html.twig'|turbo_frame('main', 'layout/_frame.html.twig') %}
+ *
+ * Also adds two functions for templates that branch on the frame themselves:
+ * `turbo_frame_request(frameId = null)` (is this a request for any frame, or for
+ * that one?) and `turbo_frame_id()` (the requesting frame, so a fragment can echo
+ * whichever frame asked, e.g. an error page rendered inside a modal frame):
+ *
+ *     {% extends turbo_frame_request() ? 'base-frame.html.twig' : 'base-modal.html.twig' %}
+ *     <turbo-frame id="{{ turbo_frame_id() }}">…</turbo-frame>
  *
  * Classic AbstractExtension form (not the `#[AsTwigFilter]` attribute) so the
  * bundle keeps working on Symfony 6.4 / 7.0-7.2, where attribute-based Twig
@@ -55,14 +64,39 @@ final class TurboExtension extends AbstractExtension
     }
 
     /**
+     * @return list<TwigFunction>
+     */
+    public function getFunctions(): array
+    {
+        return [
+            new TwigFunction('turbo_frame_request', $this->isTurboFrameRequest(...)),
+            new TwigFunction('turbo_frame_id', $this->turboFrameId(...)),
+        ];
+    }
+
+    /**
+     * Whether the current request targets a Turbo Frame: any frame, or the given one.
+     */
+    public function isTurboFrameRequest(?string $frameId = null): bool
+    {
+        return $this->turboManager->hasTurboFrame()
+            && (null === $frameId || $frameId === $this->turboManager->getTurboFrameId());
+    }
+
+    /**
+     * The id of the frame that sent the request, or null outside a frame request.
+     */
+    public function turboFrameId(): ?string
+    {
+        return $this->turboManager->getTurboFrameId();
+    }
+
+    /**
      * @param string|null $baseTemplate per-call override of the configured base template
      */
     public function turboFrame(Environment $environment, string $template, ?string $frameId = null, ?string $baseTemplate = null): string
     {
-        $matchesFrame = $this->turboManager->hasTurboFrame()
-            && (null === $frameId || $frameId === $this->turboManager->getTurboFrameId());
-
-        if (!$matchesFrame) {
+        if (!$this->isTurboFrameRequest($frameId)) {
             return $template;
         }
 

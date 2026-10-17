@@ -7,6 +7,14 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-17
+
+### Added
+
+- `turbo_frame_request(frameId = null)` and `turbo_frame_id()` Twig functions: branch a template on the requesting frame
+  (`{% extends turbo_frame_request('modal') ? 'base-frame.html.twig' : 'base-modal.html.twig' %}`) and echo it back
+  (`<turbo-frame id="{{ turbo_frame_id() }}">`).
+
 ## [0.5.0] - 2026-10-12
 
 ### Added
@@ -111,7 +119,8 @@ First tagged release. (`@silarhi/turbo@0.1.0` was published to npm ahead of it, 
 - `turbo_frame` Twig filter (registered when Twig is installed) to extend a lean frame template when the request targets
   a matching Turbo Frame.
 
-[Unreleased]: https://github.com/silarhi/turbo-bundle/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/silarhi/turbo-bundle/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/silarhi/turbo-bundle/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/silarhi/turbo-bundle/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/silarhi/turbo-bundle/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/silarhi/turbo-bundle/compare/v0.3.1...v0.4.0

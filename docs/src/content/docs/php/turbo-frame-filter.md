@@ -70,7 +70,7 @@ needs that element, and the blocks of the full layout your pages fill. For examp
 
 ```twig
 {# templates/base-frame.html.twig #}
-<turbo-frame id="{{ app.request.headers.get('Turbo-Frame') }}">
+<turbo-frame id="{{ turbo_frame_id() }}">
     {% block body %}{% endblock %}
 </turbo-frame>
 ```
@@ -86,3 +86,27 @@ needs that element, and the blocks of the full layout your pages fill. For examp
 
 A normal request renders the page in `base.html.twig`; a request from the `project-details` frame renders it in
 `base-frame.html.twig`, the `-frame` sibling of `base.html.twig`.
+
+## Branching on the frame: `turbo_frame_request()` and `turbo_frame_id()`
+
+Two functions cover the templates that decide by themselves:
+
+| Function                              | Returns                                                                                               |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `turbo_frame_request(frameId = null)` | `true` when the request targets a Turbo Frame (any frame, or the given id); `false` without a request |
+| `turbo_frame_id()`                    | The id of the requesting frame, or `null` outside a frame request                                     |
+
+A typical use is a URL that opens in a modal frame but also works as a full page (a new tab, a direct link, no
+JavaScript):
+
+```twig
+{# templates/project/edit.html.twig #}
+{% extends turbo_frame_request('modal') ? 'base-frame.html.twig' : 'base-modal.html.twig' %}
+```
+
+`turbo_frame_id()` lets a shared fragment answer whichever frame asked, for example an access-denied page that replaces
+the content of the frame that requested it instead of triggering Turbo's "Content missing":
+
+```twig
+<turbo-frame id="{{ turbo_frame_id() }}">…</turbo-frame>
+```

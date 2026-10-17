@@ -22,6 +22,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Twig\Environment;
 use Twig\Loader\ArrayLoader;
 use Twig\TwigFilter;
+use Twig\TwigFunction;
 
 class TurboExtensionTest extends TestCase
 {
@@ -183,6 +184,58 @@ class TurboExtensionTest extends TestCase
         self::assertInstanceOf(TwigFilter::class, $filters[0]);
         self::assertSame('turbo_frame', $filters[0]->getName());
         self::assertTrue($filters[0]->needsEnvironment());
+    }
+
+    public function testExposesTheFrameFunctions(): void
+    {
+        $functions = $this->extensionFor(new Request())->getFunctions();
+
+        self::assertSame(['turbo_frame_request', 'turbo_frame_id'], array_map(static fn (TwigFunction $function): string => $function->getName(), $functions));
+    }
+
+    public function testFrameFunctionsOutsideAnyTurboFrame(): void
+    {
+        $extension = $this->extensionFor(new Request());
+
+        self::assertFalse($extension->isTurboFrameRequest());
+        self::assertFalse($extension->isTurboFrameRequest('modal'));
+        self::assertNull($extension->turboFrameId());
+    }
+
+    public function testFrameFunctionsWithoutACurrentRequest(): void
+    {
+        $extension = new TurboExtension(new TurboManager(new RequestStack()));
+
+        self::assertFalse($extension->isTurboFrameRequest());
+        self::assertNull($extension->turboFrameId());
+    }
+
+    public function testFrameFunctionsInsideATurboFrame(): void
+    {
+        $request = new Request();
+        $request->headers->set('Turbo-Frame', 'modal');
+
+        $extension = $this->extensionFor($request);
+
+        self::assertTrue($extension->isTurboFrameRequest());
+        self::assertTrue($extension->isTurboFrameRequest('modal'));
+        self::assertFalse($extension->isTurboFrameRequest('sidebar'));
+        self::assertSame('modal', $extension->turboFrameId());
+    }
+
+    public function testTemplateBranchesOnTheFrameFunctions(): void
+    {
+        $request = new Request();
+        $request->headers->set('Turbo-Frame', 'modal');
+
+        $environment = new Environment(new ArrayLoader([
+            'base-frame.html.twig' => '<turbo-frame id="{{ turbo_frame_id() }}">{% block body %}{% endblock %}</turbo-frame>',
+            'base-modal.html.twig' => 'page:{% block body %}{% endblock %}',
+            'form.html.twig' => "{% extends turbo_frame_request('modal') ? 'base-frame.html.twig' : 'base-modal.html.twig' %}{% block body %}form{% endblock %}",
+        ]));
+        $environment->addExtension($this->extensionFor($request));
+
+        self::assertSame('<turbo-frame id="modal">form</turbo-frame>', $environment->render('form.html.twig'));
     }
 
     public function testFilterExtendsTheFrameSiblingWhenRenderedInsideAMatchingFrame(): void
