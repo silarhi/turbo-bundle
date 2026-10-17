@@ -7,6 +7,12 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 
 ## [Unreleased]
 
+### Added
+
+- `turbo_frame_request(frameId = null)` and `turbo_frame_id()` Twig functions: branch a template on the requesting frame
+  (`{% extends turbo_frame_request('modal') ? 'base-frame.html.twig' : 'base-modal.html.twig' %}`) and echo it back
+  (`<turbo-frame id="{{ turbo_frame_id() }}">`).
+
 ## [0.5.0] - 2026-10-12
 
 ### Added

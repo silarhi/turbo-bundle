@@ -59,10 +59,13 @@ so it works on Symfony 6.4 and 7.0 to 7.2, where attribute-based Twig extensions
 public function __construct(TurboManager $turboManager, string $baseTemplate = 'base-frame.html.twig')
 ```
 
-| Method                                                                                                                  | Effect                                                                      |
-| ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `getFilters(): array`                                                                                                   | The `turbo_frame` filter.                                                   |
-| `turboFrame(Environment $environment, string $template, ?string $frameId = null, ?string $baseTemplate = null): string` | The template to extend ([resolution](/php/turbo-frame-filter/#resolution)). |
+| Method                                                                                                                  | Effect                                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getFilters(): array`                                                                                                   | The `turbo_frame` filter.                                                                                                                                              |
+| `getFunctions(): array`                                                                                                 | The `turbo_frame_request` and `turbo_frame_id` functions.                                                                                                              |
+| `isTurboFrameRequest(?string $frameId = null): bool`                                                                    | Whether the request targets a Turbo Frame, any or the given one ([functions](/php/turbo-frame-filter/#branching-on-the-frame-turbo_frame_request-and-turbo_frame_id)). |
+| `turboFrameId(): ?string`                                                                                               | The id of the requesting frame, or `null`.                                                                                                                             |
+| `turboFrame(Environment $environment, string $template, ?string $frameId = null, ?string $baseTemplate = null): string` | The template to extend ([resolution](/php/turbo-frame-filter/#resolution)).                                                                                            |
 
 ## `SilarhiTurboBundle`
 
