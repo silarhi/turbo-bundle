@@ -50,6 +50,7 @@ _when_ and _on which element_, you decide _what_.
 | `streamMutations`     | `boolean`                         | `true`              | Diff the DOM around each Turbo Stream render and mount/unmount the nodes it touched. |
 | `morphMutations`      | `boolean`                         | `false`             | Handle Drive/Frame **morph** renders per-node via `turbo:morph-element`.             |
 | `visitOnFrameMissing` | `boolean`                         | `false`             | Render a frame response with no matching `<turbo-frame>` as a full Drive visit.      |
+| `frameStreams`        | `boolean`                         | `false`             | Run the `<turbo-stream>` elements a frame response carries outside any frame.        |
 
 ¹ `window.Turbo.visit(url)`; without the `Turbo` global, a full page load with `window.location.assign(url)` and a
 console warning.
@@ -84,6 +85,13 @@ When a frame request gets a response that has no matching `<turbo-frame>` — ty
 session redirecting to a login page — Turbo fires `turbo:frame-missing`, writes "Content missing" into
 the frame and throws. Set `visitOnFrameMissing: true` to cancel that and render the response as a full
 page instead (the response is reused, no second request). Requires Turbo 7.2+.
+
+## `frameStreams` (streams in a frame response)
+
+A frame request only swaps its own `<turbo-frame>`: Turbo discards the rest of the response, including the
+`<turbo-stream>` elements outside the frame. Set `frameStreams: true` to run those (the ones outside **any** frame) after
+the frame rendered — e.g. the frame layout appending the flash messages to a page-level container with the same stream
+markup as a Turbo Stream response. No second request: the response already received is parsed again.
 
 ## Symfony / PHP companion
 

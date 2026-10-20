@@ -22,6 +22,7 @@ The package exports the `TurboHandler` class and the `TurboHandlerOptions` type.
 | `streamMutations`     | `boolean`                         | `true`              | Diff the DOM around each Turbo Stream render and mount/unmount the nodes it touched.                                    |
 | `morphMutations`      | `boolean`                         | `false`             | Handle Drive/Frame **morph** renders per-node via `turbo:morph-element` instead of re-initializing the whole container. |
 | `visitOnFrameMissing` | `boolean`                         | `false`             | Render a frame response with no matching `<turbo-frame>` as a full Drive visit (Turbo 7.2+).                            |
+| `frameStreams`        | `boolean`                         | `false`             | Run the `<turbo-stream>` elements a frame response carries outside any `<turbo-frame>`.                                 |
 
 ¹ `window.Turbo.visit(url)`; without the `Turbo` global, a full page load with `window.location.assign(url)` and a
 console warning ([Following redirects](/javascript/turbo-handler/#following-redirects)).
@@ -29,7 +30,8 @@ console warning ([Following redirects](/javascript/turbo-handler/#following-redi
 The callbacks are only ever passed an element; a function typed `(container: Element | Document) => void` fits too.
 
 Guides: [TurboHandler](/javascript/turbo-handler/), [`streamMutations`](/javascript/stream-mutations/),
-[`morphMutations`](/javascript/morph-mutations/), [`visitOnFrameMissing`](/javascript/frame-missing/).
+[`morphMutations`](/javascript/morph-mutations/), [`visitOnFrameMissing`](/javascript/frame-missing/),
+[`frameStreams`](/javascript/frame-streams/).
 
 ## Methods
 

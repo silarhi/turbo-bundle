@@ -61,6 +61,15 @@ export interface TurboHandlerOptions {
      * instead. Defaults to `false` (stock Turbo behavior). Requires Turbo 7.2+.
      */
     visitOnFrameMissing?: boolean
+    /**
+     * Run the `<turbo-stream>` elements a frame response carries **outside** any
+     * `<turbo-frame>`, which Turbo otherwise discards with the rest of the page
+     * (`turbo:frame-render`). Lets the server answer a frame request
+     * and update the page around it — typically the layout appending the flash
+     * messages to a page-level container — with the same stream markup as a
+     * Turbo Stream response. Defaults to `false` (stock Turbo behavior).
+     */
+    frameStreams?: boolean
 }
 
 interface BeforeFetchRequestDetail {
@@ -80,6 +89,10 @@ interface SubmitEndDetail {
 interface FrameMissingDetail {
     response: Response
     visit: (location: Response | string) => Promise<void> | void
+}
+
+interface FrameRenderDetail {
+    fetchResponse?: { responseHTML: Promise<string | undefined> }
 }
 
 interface BeforeStreamRenderDetail {
@@ -132,6 +145,7 @@ export class TurboHandler {
     readonly #streamMutations: boolean
     readonly #morphMutations: boolean
     readonly #visitOnFrameMissing: boolean
+    readonly #frameStreams: boolean
 
     #started = false
     #initialLoad = true
@@ -150,6 +164,7 @@ export class TurboHandler {
         this.#streamMutations = options.streamMutations ?? true
         this.#morphMutations = options.morphMutations ?? false
         this.#visitOnFrameMissing = options.visitOnFrameMissing ?? false
+        this.#frameStreams = options.frameStreams ?? false
     }
 
     /** Attach every document listener. Idempotent — calling twice is a no-op. */
@@ -180,6 +195,10 @@ export class TurboHandler {
 
         if (this.#visitOnFrameMissing) {
             this.#bindings.push({ type: 'turbo:frame-missing', handler: this.#onFrameMissing })
+        }
+
+        if (this.#frameStreams) {
+            this.#bindings.push({ type: 'turbo:frame-render', handler: this.#onFrameRender })
         }
 
         for (const { type, handler } of this.#bindings) {
@@ -242,6 +261,25 @@ export class TurboHandler {
         const { response, visit } = (event as CustomEvent<FrameMissingDetail>).detail
         event.preventDefault()
         visit(response)
+    }
+
+    // The frame swapped in its own content only: run the response's layout-level
+    // streams, outside any frame (the ones inside the rendered frame came in
+    // with it, and Turbo ran them on insertion). Connecting a <turbo-stream> to
+    // the document performs its action; the stream render hook then mounts what
+    // it inserted.
+    #onFrameRender = async (event: Event): Promise<void> => {
+        const html = await (event as CustomEvent<FrameRenderDetail>).detail?.fetchResponse?.responseHTML
+        if (!html) {
+            return
+        }
+
+        const response = new DOMParser().parseFromString(html, 'text/html')
+        for (const stream of response.querySelectorAll('turbo-stream')) {
+            if (!stream.closest('turbo-frame')) {
+                document.body.append(document.importNode(stream, true))
+            }
+        }
     }
 
     // A failed Drive submission (e.g. 422 outside any frame) makes Turbo render

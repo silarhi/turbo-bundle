@@ -200,6 +200,65 @@ describe('TurboHandler', () => {
         expect(onUnmount).not.toHaveBeenCalled()
     })
 
+    describe('frame streams (opt-in)', () => {
+        const RESPONSE = `<html><body>
+            <turbo-stream action="append" target="flash-alerts"><template><div class="alert">Saved</div></template></turbo-stream>
+            <turbo-frame id="crud-form"><turbo-stream action="update" target="inner"><template>x</template></turbo-stream>Form</turbo-frame>
+            <turbo-frame id="other"><turbo-stream action="remove" target="elsewhere"></turbo-stream></turbo-frame>
+        </body></html>`
+
+        function renderFrame(id: string, responseHTML: string | undefined): HTMLElement {
+            const frame = document.createElement('turbo-frame')
+            frame.id = id
+            document.body.appendChild(frame)
+            frame.dispatchEvent(
+                new CustomEvent('turbo:frame-render', {
+                    bubbles: true,
+                    detail: { fetchResponse: { responseHTML: Promise.resolve(responseHTML) } },
+                })
+            )
+
+            return frame
+        }
+
+        function appendedStreams(): string[] {
+            return [...document.body.querySelectorAll(':scope > turbo-stream')].map(
+                (stream) => `${stream.getAttribute('action')}#${stream.getAttribute('target')}`
+            )
+        }
+
+        it('ignores the streams of a frame response by default', async () => {
+            renderFrame('crud-form', RESPONSE)
+            await Promise.resolve()
+
+            expect(appendedStreams()).toEqual([])
+        })
+
+        it('runs the streams living outside any frame', async () => {
+            handler.stop()
+            handler = new TurboHandler({ onMount, onUnmount, frameStreams: true })
+            handler.start()
+
+            renderFrame('crud-form', RESPONSE)
+
+            await vi.waitFor(() => expect(appendedStreams()).toEqual(['append#flash-alerts']))
+            expect(document.body.querySelector(':scope > turbo-stream template')?.innerHTML).toBe(
+                '<div class="alert">Saved</div>'
+            )
+        })
+
+        it('does nothing without a response body', async () => {
+            handler.stop()
+            handler = new TurboHandler({ onMount, onUnmount, frameStreams: true })
+            handler.start()
+
+            renderFrame('crud-form', undefined)
+            await Promise.resolve()
+
+            expect(appendedStreams()).toEqual([])
+        })
+    })
+
     describe('stream mutations (morph)', () => {
         it('mounts inserted nodes and unmounts removed nodes by default', async () => {
             const removed = document.createElement('div')
