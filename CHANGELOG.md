@@ -7,6 +7,12 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 
 ## [Unreleased]
 
+### Added
+
+- `TurboHandler` `frameStreams` option (off by default): run the `<turbo-stream>` elements a frame response carries
+  outside any `<turbo-frame>`, which Turbo otherwise discards, so a frame layout can update the page around the frame
+  (e.g. append its flash messages) with the same markup as a Turbo Stream response.
+
 ## [0.6.0] - 2026-10-17
 
 ### Added

@@ -54,7 +54,8 @@ _what_.
 - `turbo:before-fetch-request`, to add the `Turbo-Frame-Follow-Redirect` header to the requests of frames carrying
   `data-turbo-follow-redirect` ([Keeping a redirect in its frame](/javascript/follow-redirect/)),
 - `turbo:before-fetch-response`, to follow a `Turbo-Location` header ([Frame redirects](/php/frame-redirects/)),
-- `turbo:frame-missing`, when [`visitOnFrameMissing`](/javascript/frame-missing/) is on.
+- `turbo:frame-missing`, when [`visitOnFrameMissing`](/javascript/frame-missing/) is on,
+- `turbo:frame-render`, when [`frameStreams`](/javascript/frame-streams/) is on.
 
 :::caution[Start before the first page load]
 The first mount happens on the first `turbo:load`. Call `start()` when your entry point runs, not after a delay: a
@@ -108,3 +109,5 @@ handled:
 - [`morphMutations`](/javascript/morph-mutations/), off by default: per-element refresh for Drive and Frame morphs.
 - [`visitOnFrameMissing`](/javascript/frame-missing/), off by default: render a frame response without a matching frame
   as a full page.
+- [`frameStreams`](/javascript/frame-streams/), off by default: run the streams a frame response carries outside its
+  frames.
