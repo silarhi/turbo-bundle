@@ -7,6 +7,14 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 
 ## [Unreleased]
 
+### Fixed
+
+- `TurboHandler` no longer unmounts and re-mounts the whole `<body>` after a `data-turbo-action` frame navigation:
+  Turbo 8 promotes it to a page visit with `willRender: false`, which still fires `turbo:before-render` and
+  `turbo:render` while keeping the body in place. Only the frame is re-mounted now, so the listeners around it (a Tom
+  Select in a filter panel, a datepicker) keep their state. Detected through the visit in flight
+  (`window.Turbo.session.navigator.currentVisit`).
+
 ## [0.8.0] - 2026-10-21
 
 ### Changed

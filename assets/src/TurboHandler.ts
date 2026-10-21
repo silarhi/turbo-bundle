@@ -9,7 +9,11 @@
 
 declare global {
     interface Window {
-        Turbo?: { visit: (location: string) => void }
+        Turbo?: {
+            visit: (location: string) => void
+            // The visit in flight, read to tell a promoted frame visit (no body render) from a real one
+            session?: { navigator?: { currentVisit?: { state?: string; willRender?: boolean } } }
+        }
     }
 }
 
@@ -115,6 +119,17 @@ const FOLLOW_REDIRECT_HEADER = 'Turbo-Frame-Follow-Redirect'
 const LOCATION_HEADER = 'Turbo-Location'
 const FOLLOW_REDIRECT_ATTRIBUTE = 'data-turbo-follow-redirect'
 const MORPH_RENDER_METHOD = 'morph'
+
+// A `data-turbo-action` frame navigation (advance / replace) is promoted to a page
+// visit that only updates the URL: Turbo still fires turbo:before-render,
+// turbo:render and turbo:load, but with `willRender: false` it never replaces the
+// <body>. Only a visit still in flight counts — once completed, the navigator keeps
+// it as `currentVisit`, and a later failed submission renders with it.
+function isRenderlessVisit(): boolean {
+    const currentVisit = window.Turbo?.session?.navigator?.currentVisit
+
+    return currentVisit?.state === 'started' && currentVisit.willRender === false
+}
 
 // Default `onRedirect`: a Drive visit through the global `@hotwired/turbo` sets
 // when imported. Without it, a full page load still reaches the target, where
@@ -308,12 +323,15 @@ export class TurboHandler {
             // changed nodes, so don't let turbo:load re-mount the whole body.
             return
         }
+        if (isRenderlessVisit()) {
+            // Promoted frame visit: the frame already re-mounted on turbo:frame-load
+            return
+        }
         this.#bodyRendered = true
     }
 
-    // A `data-turbo-action="advance"` frame navigation also fires turbo:load (to
-    // advance the URL) but with willRender: false — gating on a real render (or
-    // the very first load) stops it re-mounting the whole body on itself.
+    // Only a real render (or the very first load) mounts the body: a promoted
+    // frame visit (`data-turbo-action`) fires turbo:load without one.
     #onLoad = (): void => {
         if (this.#initialLoad || this.#bodyRendered) {
             this.#onMount(this.#getContainer(document))
@@ -335,7 +353,7 @@ export class TurboHandler {
     }
 
     #onBeforeRender = (event: Event): void => {
-        if (this.#isMorph(event)) {
+        if (this.#isMorph(event) || isRenderlessVisit()) {
             return
         }
         this.#onUnmount(this.#getContainer(document))

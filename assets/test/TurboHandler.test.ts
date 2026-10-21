@@ -87,6 +87,66 @@ describe('TurboHandler', () => {
         expect(onMount).toHaveBeenCalledWith(document.body)
     })
 
+    describe('promoted frame visits (data-turbo-action)', () => {
+        function currentVisit(state: string, willRender: boolean): void {
+            window.Turbo = { visit: vi.fn(), session: { navigator: { currentVisit: { state, willRender } } } }
+        }
+
+        afterEach(() => {
+            delete window.Turbo
+        })
+
+        it('re-mounts only the frame, not the body, when the visit only advances the URL', () => {
+            fire('turbo:load') // initial
+            onMount.mockClear()
+            const frame = document.createElement('turbo-frame')
+            document.body.appendChild(frame)
+
+            // What Turbo 8 dispatches for an advance frame navigation: the frame render, then a
+            // page visit with willRender false that still fires the page render events
+            frame.dispatchEvent(new CustomEvent('turbo:before-frame-render', { bubbles: true }))
+            frame.dispatchEvent(new CustomEvent('turbo:frame-load', { bubbles: true }))
+            currentVisit('started', false)
+            fire('turbo:before-render', { renderMethod: 'replace' })
+            fire('turbo:render', { renderMethod: 'replace' })
+            fire('turbo:load')
+
+            expect(onUnmount.mock.calls).toEqual([[frame]])
+            expect(onMount.mock.calls).toEqual([[frame]])
+        })
+
+        it('still mounts a failed submission rendered after a completed renderless visit', () => {
+            fire('turbo:load') // initial
+            onMount.mockClear()
+            // The navigator keeps the last visit, here a finished frame promotion
+            currentVisit('completed', false)
+
+            fire('turbo:submit-end', {
+                success: false,
+                fetchResponse: { contentType: 'text/html; charset=utf-8' },
+                formSubmission: { fetchRequest: { headers: {} } },
+            })
+            fire('turbo:before-render', { renderMethod: 'replace' })
+            fire('turbo:render', { renderMethod: 'replace' })
+
+            expect(onUnmount).toHaveBeenCalledWith(document.body)
+            expect(onMount).toHaveBeenCalledWith(document.body)
+        })
+
+        it('re-mounts the body for a visit that renders', () => {
+            fire('turbo:load') // initial
+            onMount.mockClear()
+            currentVisit('started', true)
+
+            fire('turbo:before-render', { renderMethod: 'replace' })
+            fire('turbo:render', { renderMethod: 'replace' })
+            fire('turbo:load')
+
+            expect(onUnmount).toHaveBeenCalledWith(document.body)
+            expect(onMount).toHaveBeenCalledWith(document.body)
+        })
+    })
+
     it('follows a Turbo-Location redirect and prevents the default frame swap', () => {
         const onRedirect = vi.fn<(url: string) => void>()
         handler.stop()
