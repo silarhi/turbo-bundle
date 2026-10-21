@@ -17,8 +17,6 @@
     ],
     "require": {
         "php": ">=8.2",
-        "symfony/config": "^6.4 || ^7.0 || ^8.0",
-        "symfony/dependency-injection": "^6.4 || ^7.0 || ^8.0",
         "symfony/event-dispatcher": "^6.4 || ^7.0 || ^8.0",
         "symfony/http-foundation": "^6.4 || ^7.0 || ^8.0",
         "symfony/http-kernel": "^6.4 || ^7.0 || ^8.0"
@@ -32,11 +30,17 @@
         "phpstan/phpstan-symfony": "^2.1.0",
         "phpunit/phpunit": "^11.5.57 || ^12.5.38 || ^13.4.1",
         "rector/rector": "^2.7.0",
+        "symfony/config": "^6.4 || ^7.0 || ^8.0",
+        "symfony/dependency-injection": "^6.4 || ^7.0 || ^8.0",
         "symfony/error-handler": "^6.4 || ^7.0 || ^8.0",
         "twig/twig": "^3.0"
     },
+    "conflict": {
+        "symfony/config": "<6.4",
+        "symfony/dependency-injection": "<6.4"
+    },
     "suggest": {
-        "symfony/framework-bundle": "Register Silarhi\\TurboBundle\\SilarhiTurboBundle for zero-config service wiring (optional — the classes also work standalone)",
+        "symfony/framework-bundle": "Register Silarhi\\TurboBundle\\SilarhiTurboBundle for zero-config service wiring (optional — TurboManager, TurboFrameListener and TurboExtension work without it, and without symfony/dependency-injection)",
         "twig/twig": "Enables the `turbo_frame` Twig filter (auto-registered by SilarhiTurboBundle when present)"
     },
     "autoload": {

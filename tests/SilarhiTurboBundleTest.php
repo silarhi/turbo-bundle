@@ -15,6 +15,7 @@ namespace Silarhi\TurboBundle\Tests;
 
 use function dirname;
 
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Silarhi\TurboBundle\EventListener\TurboFrameListener;
 use Silarhi\TurboBundle\SilarhiTurboBundle;
@@ -41,6 +42,11 @@ use Symfony\Component\HttpKernel\KernelEvents;
 use Twig\Environment;
 use Twig\Loader\ArrayLoader;
 
+/**
+ * The only tests that need symfony/config and symfony/dependency-injection: the
+ * "without the bundle dependencies" CI job removes both and excludes this group.
+ */
+#[Group('bundle')]
 class SilarhiTurboBundleTest extends TestCase
 {
     public function testExtensionIsExposedUnderTheSilarhiTurboAlias(): void

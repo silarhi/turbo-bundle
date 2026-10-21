@@ -50,7 +50,8 @@ The two halves solve different problems and only meet on redirect following (the
 - **[`@silarhi/turbo`](https://www.npmjs.com/package/@silarhi/turbo)** (JS/TS): a `TurboHandler` that runs a single
   pair of `onMount` / `onUnmount` callbacks across every Turbo Drive, Frame and Stream render.
 - **`silarhi/turbo-bundle`** (PHP): a listener that turns a redirect issued inside a Turbo Frame into a full Drive
-  visit, plus the `turbo_frame` Twig filter. Symfony components only, no `symfony/framework-bundle` required.
+  visit, plus the `turbo_frame` Twig filter. Symfony components only: no `symfony/framework-bundle` nor dependency
+  injection container required.
 
 ## Features
 
@@ -62,7 +63,7 @@ The two halves solve different problems and only meet on redirect following (the
 
 ## Requirements
 
-- PHP 8.2+ and Symfony components 6.4, 7.x or 8.x
+- PHP 8.2+ and Symfony components 6.4, 7.x or 8.x (HttpFoundation, HttpKernel and EventDispatcher)
 - `@hotwired/turbo` 7.1+ or 8.x for `@silarhi/turbo` (following `DELETE` redirects outside a frame needs Turbo 8)
 
 ## Installation

@@ -20,6 +20,14 @@
                 "dependencies": "latest",
                 "command": "composer validate --strict && composer normalize --dry-run --diff"
             }
+        },
+        {
+            "name": "PHPUnit without the bundle dependencies",
+            "job": {
+                "php": "@lowest",
+                "dependencies": "latest",
+                "command": "composer remove --dev --no-interaction symfony/config symfony/dependency-injection && ! composer show symfony/config 2>/dev/null && ! composer show symfony/dependency-injection 2>/dev/null && vendor/bin/phpunit --exclude-group bundle --no-coverage"
+            }
         }
     ]
 }
