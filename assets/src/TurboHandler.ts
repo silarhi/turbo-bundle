@@ -166,6 +166,9 @@ export class TurboHandler {
     #initialLoad = true
     #bodyRendered = false
     #failedSubmissionRender = false
+    // The body was unmounted for the snapshot cache: the next turbo:load must mount it,
+    // even when the render that follows doesn't (a morph)
+    #unmountedForCache = false
     #bindings: Binding[] = []
     // Frames whose in-flight render is a morph — so turbo:frame-load (which
     // carries no renderMethod) knows to skip the coarse mount.
@@ -198,6 +201,7 @@ export class TurboHandler {
             { type: 'turbo:frame-load', handler: this.#onFrameLoad },
             { type: 'turbo:before-render', handler: this.#onBeforeRender },
             { type: 'turbo:before-frame-render', handler: this.#onBeforeFrameRender },
+            { type: 'turbo:before-cache', handler: this.#onBeforeCache },
         ]
 
         if (this.#streamMutations) {
@@ -236,6 +240,7 @@ export class TurboHandler {
         this.#initialLoad = true
         this.#bodyRendered = false
         this.#failedSubmissionRender = false
+        this.#unmountedForCache = false
         this.#morphingFrames = new WeakSet()
     }
 
@@ -333,11 +338,26 @@ export class TurboHandler {
     // Only a real render (or the very first load) mounts the body: a promoted
     // frame visit (`data-turbo-action`) fires turbo:load without one.
     #onLoad = (): void => {
-        if (this.#initialLoad || this.#bodyRendered) {
+        if (this.#initialLoad || this.#bodyRendered || this.#unmountedForCache) {
             this.#onMount(this.#getContainer(document))
         }
         this.#initialLoad = false
         this.#bodyRendered = false
+        this.#unmountedForCache = false
+    }
+
+    // Turbo clones the page into its snapshot cache one tick after this event, which
+    // can come before turbo:before-render (the head merge waits for new stylesheets):
+    // unmount now, so the snapshot holds the server DOM and not what listeners added
+    // (a restored or previewed snapshot would otherwise get them twice). Not for a
+    // promoted frame visit, which caches a copy taken when the frame navigation started
+    // and renders nothing to re-mount after.
+    #onBeforeCache = (): void => {
+        if (isRenderlessVisit()) {
+            return
+        }
+        this.#onUnmount(this.#getContainer(document))
+        this.#unmountedForCache = true
     }
 
     #onFrameLoad = (event: Event): void => {

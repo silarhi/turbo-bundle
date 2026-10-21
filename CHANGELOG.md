@@ -14,6 +14,14 @@ same git tag; since 0.2.1 the npm package version follows that tag.
   `turbo:render` while keeping the body in place. Only the frame is re-mounted now, so the listeners around it (a Tom
   Select in a filter panel, a datepicker) keep their state. Detected through the visit in flight
   (`window.Turbo.session.navigator.currentVisit`).
+- `TurboHandler` unmounts the body on `turbo:before-cache`, so Turbo's snapshot cache holds the server DOM and not what
+  listeners added. Turbo clones the page one tick after that event, which comes before `turbo:before-render` when the
+  next page brings a stylesheet still loading: a restored or previewed page then got its widgets twice. The next
+  `turbo:load` mounts the body again, even after a render that doesn't (a morph). `onUnmount` can therefore run twice
+  for one visit (`turbo:before-cache`, then `turbo:before-render`). Known limit: a promoted frame visit caches a copy of
+  the page Turbo takes when the frame navigation starts, with the listeners' DOM in it, so going back to a page whose
+  `data-turbo-action` frame navigated still restores it; keep `turbo-cache-control: no-cache` if listeners rewrite the
+  DOM there.
 
 ## [0.8.0] - 2026-10-21
 
