@@ -5,8 +5,10 @@ sidebar:
     order: 3
 ---
 
-The PHP half depends on Symfony components only, not on `symfony/framework-bundle`: it works in projects that wire an
-event dispatcher by hand. Skip `SilarhiTurboBundle` and instantiate the classes:
+The PHP half depends on three Symfony components only, `symfony/http-foundation`, `symfony/http-kernel` and
+`symfony/event-dispatcher`: neither `symfony/framework-bundle` nor `symfony/dependency-injection` is installed with it.
+It works in projects that wire an event dispatcher by hand. Skip `SilarhiTurboBundle` (it is the only class that needs
+the container) and instantiate the classes:
 
 ```php
 use Silarhi\TurboBundle\EventListener\TurboFrameListener;

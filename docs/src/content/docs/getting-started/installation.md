@@ -17,7 +17,7 @@ The repository ships two packages, released from the same git tag. Install one, 
 | Dependency                                                                                               | Version         |
 | -------------------------------------------------------------------------------------------------------- | --------------- |
 | PHP                                                                                                      | 8.2+            |
-| Symfony components (config, dependency-injection, event-dispatcher, http-foundation, http-kernel)        | 6.4 / 7.x / 8.x |
+| Symfony components (event-dispatcher, http-foundation, http-kernel)                                      | 6.4 / 7.x / 8.x |
 | [`@hotwired/turbo`](https://www.npmjs.com/package/@hotwired/turbo) (peer dependency of `@silarhi/turbo`) | 7.1+ / 8.x      |
 
 `visitOnFrameMissing` needs Turbo 7.2+, and morph renders exist since Turbo 8. Following `DELETE` redirects outside a
@@ -30,6 +30,9 @@ not send ([`DELETE` redirects](/php/frame-redirects/#delete-redirects)).
 | -------------------------- | --------------------------------------------------------------- |
 | `symfony/framework-bundle` | Registering `SilarhiTurboBundle` for zero-config service wiring |
 | `twig/twig`                | The `turbo_frame` Twig filter                                   |
+
+`symfony/config` and `symfony/dependency-injection` are not installed with the package: only `SilarhiTurboBundle`
+uses them, and a Symfony application already has them through `symfony/framework-bundle`.
 
 ## JavaScript half
 
@@ -70,5 +73,6 @@ automatically), plus the `turbo_frame` Twig filter when Twig is installed. Every
 
 ### Without the framework
 
-The bundle class is optional. The services depend on Symfony components only, so a project that wires its event
-dispatcher by hand can instantiate them itself: see [Without the framework](/php/without-framework/).
+The bundle class is optional. The services depend on HttpFoundation, HttpKernel and EventDispatcher only, not on the
+dependency injection container, so a project that wires its event dispatcher by hand can instantiate them itself: see
+[Without the framework](/php/without-framework/).

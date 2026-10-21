@@ -7,6 +7,14 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 
 ## [Unreleased]
 
+### Changed
+
+- `symfony/config` and `symfony/dependency-injection` are no longer required: only `SilarhiTurboBundle` uses them, and
+  `symfony/framework-bundle` already brings them. A project that uses `TurboManager`, `TurboFrameListener` and
+  `TurboExtension` without the bundle now installs HttpFoundation, HttpKernel and EventDispatcher only. A project that
+  registers the bundle without `symfony/framework-bundle` must now require `symfony/dependency-injection` and
+  `symfony/config` itself.
+
 ## [0.7.0] - 2026-10-20
 
 ### Added
