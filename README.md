@@ -68,7 +68,7 @@ The two halves solve different problems and only meet on redirect following (the
 ## Requirements
 
 - PHP 8.2+ and Symfony components 6.4, 7.x or 8.x (HttpFoundation, HttpKernel and EventDispatcher)
-- `@hotwired/turbo` 7.1+ or 8.x for `@silarhi/turbo` (following `DELETE` redirects outside a frame needs Turbo 8)
+- `@hotwired/turbo` 7.2+ or 8.x for `@silarhi/turbo`
 
 ## Installation
 

@@ -9,6 +9,9 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 
 ### Changed
 
+- `@silarhi/turbo` requires `@hotwired/turbo` 7.2+ (was 7.1+). Turbo 7.1 lacks `turbo:before-frame-render` and the
+  `render` hook of `turbo:before-stream-render`: a frame navigation did not unmount the old frame content, and the
+  nodes a stream inserted were not mounted.
 - The CI runs end-to-end tests: `TurboHandler` and `TurboFrameListener` against the real Turbo in Chromium, on Turbo
   7.2 and 8 (`assets/e2e`, `tests/E2E`).
 

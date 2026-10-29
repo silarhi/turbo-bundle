@@ -42,7 +42,7 @@
         "e2e": "pnpm build && playwright test"
     },
     "peerDependencies": {
-        "@hotwired/turbo": "^7.1.0 || ^8.0"
+        "@hotwired/turbo": "^7.2.0 || ^8.0"
     },
     "devDependencies": {
         "@biomejs/biome": "2.6.3",
