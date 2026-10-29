@@ -9,6 +9,7 @@
         "noUnusedParameters": true,
         "noFallthroughCasesInSwitch": true,
         "declaration": true,
+        "isolatedDeclarations": true,
         "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
