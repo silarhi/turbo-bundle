@@ -87,6 +87,38 @@ describe('TurboHandler', () => {
         expect(onMount).toHaveBeenCalledWith(document.body)
     })
 
+    describe('submissions that do not render the body directly', () => {
+        it.each([
+            ['a successful submission', { success: true, fetchResponse: { contentType: 'text/html' } }],
+            ['a failed non-HTML submission', { success: false, fetchResponse: { contentType: 'application/json' } }],
+            ['a failed submission without a response', { success: false }],
+        ])('waits for turbo:load after %s', (_label, detail) => {
+            fire('turbo:load') // initial
+            onMount.mockClear()
+
+            fire('turbo:submit-end', { ...detail, formSubmission: { fetchRequest: { headers: {} } } })
+            fire('turbo:render')
+            expect(onMount).not.toHaveBeenCalled()
+
+            fire('turbo:load')
+            expect(onMount.mock.calls).toEqual([[document.body]])
+        })
+
+        it('does not mount the body for a failed submission inside a frame', () => {
+            fire('turbo:load') // initial
+            onMount.mockClear()
+
+            fire('turbo:submit-end', {
+                success: false,
+                fetchResponse: { contentType: 'text/html; charset=utf-8' },
+                formSubmission: { fetchRequest: { headers: { 'Turbo-Frame': 'crud-form' } } },
+            })
+            fire('turbo:render')
+
+            expect(onMount).not.toHaveBeenCalled()
+        })
+    })
+
     describe('snapshot cache', () => {
         it('unmounts the body before Turbo snapshots it', () => {
             fire('turbo:load') // initial
@@ -207,6 +239,18 @@ describe('TurboHandler', () => {
         expect(event.defaultPrevented).toBe(true)
     })
 
+    it('lets a response without Turbo-Location through', () => {
+        const onRedirect = vi.fn<(url: string) => void>()
+        handler.stop()
+        handler = new TurboHandler({ onMount, onUnmount, onRedirect })
+        handler.start()
+
+        const event = fire('turbo:before-fetch-response', { fetchResponse: { response: { headers: new Headers() } } })
+
+        expect(onRedirect).not.toHaveBeenCalled()
+        expect(event.defaultPrevented).toBe(false)
+    })
+
     describe('default onRedirect', () => {
         const headers = () => new Headers({ 'Turbo-Location': '/next' })
 
@@ -287,6 +331,18 @@ describe('TurboHandler', () => {
         expect(plainHeaders['Turbo-Frame-Follow-Redirect']).toBeUndefined()
     })
 
+    it('leaves the headers of a non-frame request untouched', () => {
+        const frame = document.createElement('turbo-frame')
+        frame.id = 'opted_in'
+        frame.setAttribute('data-turbo-follow-redirect', '')
+        document.body.append(frame)
+
+        const headers: Record<string, string> = { Accept: 'text/html' }
+        fire('turbo:before-fetch-request', { fetchOptions: { headers } })
+
+        expect(headers).toEqual({ Accept: 'text/html' })
+    })
+
     it('uses a custom getContainer for body renders', () => {
         handler.stop()
         const root = document.createElement('main')
@@ -303,6 +359,31 @@ describe('TurboHandler', () => {
 
         fire('turbo:load')
         fire('turbo:before-render')
+        expect(onMount).not.toHaveBeenCalled()
+        expect(onUnmount).not.toHaveBeenCalled()
+    })
+
+    it('attaches its listeners only once when started twice', () => {
+        handler.start()
+
+        fire('turbo:load')
+        expect(onMount.mock.calls).toEqual([[document.body]])
+
+        handler.stop()
+        fire('turbo:before-render')
+        expect(onUnmount).not.toHaveBeenCalled()
+    })
+
+    it('ignores lifecycle events that do not target an element', () => {
+        handler.stop()
+        handler = new TurboHandler({ onMount, onUnmount, morphMutations: true })
+        handler.start()
+
+        // Dispatched on the document itself: there is no frame / morphed element to act on
+        fire('turbo:frame-load')
+        fire('turbo:before-frame-render')
+        fire('turbo:morph-element')
+
         expect(onMount).not.toHaveBeenCalled()
         expect(onUnmount).not.toHaveBeenCalled()
     })
@@ -385,6 +466,50 @@ describe('TurboHandler', () => {
             expect(onUnmount).toHaveBeenCalledWith(removed)
         })
 
+        it('mounts a node the render moved without unmounting it, and skips text nodes', async () => {
+            const moved = document.createElement('article')
+            const target = document.createElement('div')
+            document.body.append(moved, target)
+
+            const detail = {
+                render: async (_streamElement: Element) => {
+                    // A morph reusing a node reports it as both removed and added
+                    const text = document.createTextNode('text')
+                    target.append(moved, text)
+                    text.remove()
+                },
+            }
+            fire('turbo:before-stream-render', detail)
+            await detail.render(document.createElement('turbo-stream'))
+
+            expect(onUnmount).not.toHaveBeenCalled()
+            expect(onMount.mock.calls).toEqual([[moved]])
+        })
+
+        it('keeps mounting the other nodes when a listener throws, and logs the error', async () => {
+            const error = new Error('listener failed')
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+            const first = document.createElement('div')
+            const second = document.createElement('div')
+            onMount.mockImplementation((container) => {
+                if (container === first) {
+                    throw error
+                }
+            })
+
+            const detail = {
+                render: async (_streamElement: Element) => {
+                    document.body.append(first, second)
+                },
+            }
+            fire('turbo:before-stream-render', detail)
+            await detail.render(document.createElement('turbo-stream'))
+
+            expect(onMount.mock.calls).toEqual([[first], [second]])
+            expect(consoleError).toHaveBeenCalledWith(error)
+            consoleError.mockRestore()
+        })
+
         it('leaves stream rendering untouched when streamMutations is false', () => {
             handler.stop()
             handler = new TurboHandler({ onMount, onUnmount, streamMutations: false })
@@ -429,6 +554,15 @@ describe('TurboHandler', () => {
         it('re-mounts an element whose attributes the morph changes', () => {
             startMorphHandler()
             const el = element('<p data-count="0">Count</p>')
+
+            morph(el, '<p data-count="1">Count</p>')
+            expect(onUnmount).toHaveBeenCalledWith(el)
+            expect(onMount).toHaveBeenCalledWith(el)
+        })
+
+        it('re-mounts an element the morph adds an attribute to', () => {
+            startMorphHandler()
+            const el = element('<p>Count</p>')
 
             morph(el, '<p data-count="1">Count</p>')
             expect(onUnmount).toHaveBeenCalledWith(el)
