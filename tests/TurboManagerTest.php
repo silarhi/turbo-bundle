@@ -84,6 +84,18 @@ class TurboManagerTest extends TestCase
         self::assertFalse($this->managerFor(new Request())->isTurboRequest());
     }
 
+    public function testIsTurboRequestReadsTheStreamAcceptOfTurbo7Submissions(): void
+    {
+        // Turbo 7 sends no X-Turbo-Request-Id, but accepts Turbo Streams on its form submissions
+        $request = Request::create('/resource', 'DELETE');
+        $request->headers->set('Accept', 'text/vnd.turbo-stream.html, text/html, application/xhtml+xml');
+
+        self::assertTrue($this->managerFor($request)->isTurboRequest());
+
+        $request->headers->set('Accept', 'text/html, application/xhtml+xml');
+        self::assertFalse($this->managerFor($request)->isTurboRequest());
+    }
+
     public function testAnswersAsAPlainRequestWithoutACurrentRequest(): void
     {
         $manager = new TurboManager(new RequestStack());

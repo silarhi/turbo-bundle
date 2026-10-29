@@ -48,6 +48,17 @@ class TurboFrameListenerTest extends TestCase
         self::assertSame('/list', $response->headers->get('Turbo-Location'));
     }
 
+    public function testDeleteRedirectOfTurbo7IsConverted(): void
+    {
+        // Turbo 7 sends no X-Turbo-Request-Id: its submissions are told apart by the Turbo Stream they accept
+        $request = Request::create('/resource', 'DELETE');
+        $request->headers->set('Accept', 'text/vnd.turbo-stream.html, text/html, application/xhtml+xml');
+
+        $response = $this->dispatch($request, new RedirectResponse('/list'))->getResponse();
+        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+        self::assertSame('/list', $response->headers->get('Turbo-Location'));
+    }
+
     public function testDeleteRedirectIsNotConvertedWhenDisabled(): void
     {
         $request = Request::create('/resource', 'DELETE');

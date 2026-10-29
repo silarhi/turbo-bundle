@@ -18,6 +18,10 @@ same git tag; since 0.2.1 the npm package version follows that tag.
   every element the morph matched, the unchanged ones and `<body>` included, and `onMount(<body>)` re-initialized every
   listener. The handler now compares each element with its new markup on `turbo:before-morph-element`, and only
   re-mounts the elements whose attributes or own child nodes change.
+- `TurboFrameListener` follows `DELETE` redirects outside a frame with Turbo 7 too. `TurboManager::isTurboRequest()`
+  only read the `X-Turbo-Request-Id` header, which Turbo sends since 8.0: it also recognizes the
+  `text/vnd.turbo-stream.html` that Turbo 7 and 8 accept on their form submissions. The browser no longer re-sends the
+  `DELETE` to the redirect target.
 
 ## [0.8.3] - 2026-10-29
 
