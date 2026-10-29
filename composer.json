@@ -39,7 +39,7 @@
         "phpstan/phpstan-strict-rules": "^2.1.0",
         "phpstan/phpstan-symfony": "^2.1.1",
         "phpunit/phpunit": "^11.5.57 || ^12.5.38 || ^13.4.1",
-        "rector/rector": "^2.7.0",
+        "rector/rector": "^2.8.1",
         "symfony/config": "^6.4 || ^7.0 || ^8.0",
         "symfony/dependency-injection": "^6.4 || ^7.0 || ^8.0",
         "symfony/error-handler": "^6.4 || ^7.0 || ^8.0",
