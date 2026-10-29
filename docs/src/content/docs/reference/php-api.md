@@ -13,12 +13,12 @@ sidebar:
 public function __construct(RequestStack $requestStack)
 ```
 
-| Method                             | Returns                                                                                                     |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `hasTurboFrame(): bool`            | Whether the request has a `Turbo-Frame` header.                                                             |
-| `getTurboFrameId(): ?string`       | The `Turbo-Frame` header: the id of the requesting frame, or `null`.                                        |
-| `followTurboFrameRedirect(): bool` | Whether a redirect should be escalated: a `Turbo-Frame` header and no `Turbo-Frame-Follow-Redirect` header. |
-| `isTurboRequest(): bool`           | Whether the request has an `X-Turbo-Request-Id` header, which Turbo sends with its fetch requests.          |
+| Method                             | Returns                                                                                                                                                                    |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hasTurboFrame(): bool`            | Whether the request has a `Turbo-Frame` header.                                                                                                                            |
+| `getTurboFrameId(): ?string`       | The `Turbo-Frame` header: the id of the requesting frame, or `null`.                                                                                                       |
+| `followTurboFrameRedirect(): bool` | Whether a redirect should be escalated: a `Turbo-Frame` header and no `Turbo-Frame-Follow-Redirect` header.                                                                |
+| `isTurboRequest(): bool`           | Whether Turbo sent the request: an `X-Turbo-Request-Id` header (Turbo 8), or an `Accept` header with `text/vnd.turbo-stream.html` (the form submissions of Turbo 7 and 8). |
 
 Without a current request on the stack (a console command, a message handler, an email rendered outside a request),
 every method answers as for a plain request: `false`, or `null` for `getTurboFrameId()`.

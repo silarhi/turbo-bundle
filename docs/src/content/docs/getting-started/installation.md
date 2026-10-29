@@ -18,11 +18,11 @@ The repository ships two packages, released from the same git tag. Install one, 
 | -------------------------------------------------------------------------------------------------------- | --------------- |
 | PHP                                                                                                      | 8.2+            |
 | Symfony components (event-dispatcher, http-foundation, http-kernel)                                      | 6.4 / 7.x / 8.x |
-| [`@hotwired/turbo`](https://www.npmjs.com/package/@hotwired/turbo) (peer dependency of `@silarhi/turbo`) | 7.1+ / 8.x      |
+| [`@hotwired/turbo`](https://www.npmjs.com/package/@hotwired/turbo) (peer dependency of `@silarhi/turbo`) | 7.2+ / 8.x      |
 
-`visitOnFrameMissing` needs Turbo 7.2+, and morph renders exist since Turbo 8. Following `DELETE` redirects outside a
-frame also needs Turbo 8: the bundle recognizes these requests by the `X-Turbo-Request-Id` header, which Turbo 7 does
-not send ([`DELETE` redirects](/php/frame-redirects/#delete-redirects)).
+Morph renders, and so [`morphMutations`](/javascript/morph-mutations/), exist since Turbo 8. Turbo 7.1 lacks the
+events the handler relies on to unmount a frame and to mount what a stream inserts (`turbo:before-frame-render`, the
+`render` hook of `turbo:before-stream-render`), added in 7.2.
 
 ### Optional dependencies
 

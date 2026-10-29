@@ -11,6 +11,7 @@ The two halves only meet on redirect following, through these headers:
 | ----------------------------- | --------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | `Turbo-Frame`                 | request   | Turbo, on frame requests: the id of the frame                                  | `TurboManager`, the `turbo_frame` filter, `TurboHandler`                                           |
 | `X-Turbo-Request-Id`          | request   | Turbo 8+, on its fetch requests (Turbo 7 does not send it)                     | `TurboManager::isTurboRequest()`, for [`DELETE` redirects](/php/frame-redirects/#delete-redirects) |
+| `Accept`                      | request   | Turbo 7+, on its form submissions: `text/vnd.turbo-stream.html` first          | `TurboManager::isTurboRequest()`, for [`DELETE` redirects](/php/frame-redirects/#delete-redirects) |
 | `Turbo-Frame-Follow-Redirect` | request   | `TurboHandler`, value `1`, for frames with `data-turbo-follow-redirect`        | `TurboManager::followTurboFrameRedirect()`, `TurboFrameListener`                                   |
 | `Turbo-Location`              | response  | `TurboFrameListener`, on a `204` replacing a redirect: the original `Location` | `TurboHandler`, which calls `onRedirect`                                                           |
 

@@ -17,9 +17,8 @@ re-initializing listeners even on the nodes the morph preserved.
 
 ## Per-element refresh
 
-Set `morphMutations: true` to instead skip that coarse re-init on morph renders and refresh only the nodes Turbo
-actually morphed, via the `turbo:morph-element` event, leaving preserved widgets (an open select, a focused field)
-untouched:
+Set `morphMutations: true` to instead skip that coarse re-init on morph renders and refresh only the elements the
+morph changed, leaving preserved widgets (an open select, a focused field) untouched:
 
 ```ts
 new TurboHandler({
@@ -35,8 +34,15 @@ With the option on:
 | -------------------------- | -------------------------------------------------------------------------------------------------- |
 | Drive morph                | No `onUnmount` / `onMount` of the container, before or after the render.                           |
 | Frame morph                | No `onUnmount` / `onMount` of the frame, before the render or on `turbo:frame-load`.               |
-| Each element morphed       | `onUnmount(element)` then `onMount(element)`; an exception is logged and does not stop the others. |
+| Each element changed       | `onUnmount(element)` then `onMount(element)`; an exception is logged and does not stop the others. |
 | Replace (non-morph) render | Unchanged: the whole container or frame is unmounted, then mounted.                                |
+
+Turbo fires `turbo:morph-element` for every element the morph matched, the unchanged ones and their ancestors up to
+`<body>` included. The handler compares each element with its new markup on `turbo:before-morph-element`, and only
+re-mounts it when the element **itself** changes: an attribute, or one of its own child nodes (a text, a comment, or
+an element replaced by another tag or added or removed). A change deeper down counts for that descendant only, so the
+ancestors of a changed element keep their listeners. What your listeners added to an element (a badge, a class) is in
+its DOM but not in the new markup: the morph removes it, so that element counts as changed and is re-mounted.
 
 ## Scope
 

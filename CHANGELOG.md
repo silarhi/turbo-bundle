@@ -5,7 +5,26 @@ All notable changes to `silarhi/turbo-bundle` (Composer) and `@silarhi/turbo` (n
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Both packages are released from the
 same git tag; since 0.2.1 the npm package version follows that tag.
 
-## [Unreleased]
+## [0.9.0] - Unreleased
+
+### Changed
+
+- `@silarhi/turbo` requires `@hotwired/turbo` 7.2+ (was 7.1+). Turbo 7.1 lacks `turbo:before-frame-render` and the
+  `render` hook of `turbo:before-stream-render`: a frame navigation did not unmount the old frame content, and the
+  nodes a stream inserted were not mounted.
+- The CI runs end-to-end tests: `TurboHandler` and `TurboFrameListener` against the real Turbo in Chromium, on Turbo
+  7.2 and 8 (`assets/e2e`, `tests/E2E`).
+
+### Fixed
+
+- `morphMutations` no longer re-mounts the whole page on a Drive morph refresh. Turbo fires `turbo:morph-element` for
+  every element the morph matched, the unchanged ones and `<body>` included, and `onMount(<body>)` re-initialized every
+  listener. The handler now compares each element with its new markup on `turbo:before-morph-element`, and only
+  re-mounts the elements whose attributes or own child nodes change.
+- `TurboFrameListener` follows `DELETE` redirects outside a frame with Turbo 7 too. `TurboManager::isTurboRequest()`
+  only read the `X-Turbo-Request-Id` header, which Turbo sends since 8.0: it also recognizes the
+  `text/vnd.turbo-stream.html` that Turbo 7 and 8 accept on their form submissions. The browser no longer re-sends the
+  `DELETE` to the redirect target.
 
 ## [0.8.3] - 2026-10-29
 
@@ -175,6 +194,7 @@ First tagged release. (`@silarhi/turbo@0.1.0` was published to npm ahead of it, 
   a matching Turbo Frame.
 
 [Unreleased]: https://github.com/silarhi/turbo-bundle/compare/v0.8.3...HEAD
+[0.9.0]: https://github.com/silarhi/turbo-bundle/compare/v0.8.3...v0.9.0
 [0.8.3]: https://github.com/silarhi/turbo-bundle/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/silarhi/turbo-bundle/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/silarhi/turbo-bundle/compare/v0.8.0...v0.8.1

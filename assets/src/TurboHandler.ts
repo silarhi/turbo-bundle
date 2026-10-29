@@ -49,9 +49,11 @@ export interface TurboHandlerOptions {
      * Handle Turbo **morph** renders (Drive `turbo-refresh-method="morph"` and
      * `<turbo-frame refresh="morph">`) per-node instead of re-initializing the
      * whole container. When `true`, the coarse container unmount/mount is skipped
-     * for morph renders and each morphed-in-place element is re-mounted via
-     * `turbo:morph-element` — so listeners on nodes the morph preserved are left
-     * untouched. Defaults to `false` (faithful whole-container re-init).
+     * for morph renders and each element the morph changes in place (its
+     * attributes or its own child nodes) is re-mounted via `turbo:morph-element`
+     * — so listeners on nodes the morph preserved, and on the ancestors of the
+     * changed ones, are left untouched. Defaults to `false` (faithful
+     * whole-container re-init).
      *
      * Scope: covers elements morphed **in place**. Subtrees a morph adds or
      * removes wholesale are not re-mounted by this path. Requires `onMount` /
@@ -99,6 +101,10 @@ interface FrameRenderDetail {
     fetchResponse?: { responseHTML: Promise<string | undefined> }
 }
 
+interface BeforeMorphElementDetail {
+    newElement?: Node
+}
+
 interface BeforeStreamRenderDetail {
     render: (streamElement: Element) => Promise<void> | void
 }
@@ -119,6 +125,35 @@ const FOLLOW_REDIRECT_HEADER = 'Turbo-Frame-Follow-Redirect'
 const LOCATION_HEADER = 'Turbo-Location'
 const FOLLOW_REDIRECT_ATTRIBUTE = 'data-turbo-follow-redirect'
 const MORPH_RENDER_METHOD = 'morph'
+
+// Whether a morph leaves the element itself as it is: same attributes, and the same
+// child nodes (texts and comments by their value, elements by their tag). Turbo
+// morphs each child element on its own, so a change deeper down doesn't count.
+function morphKeeps(element: Element, newElement: Element): boolean {
+    if (element.tagName !== newElement.tagName || element.attributes.length !== newElement.attributes.length) {
+        return false
+    }
+    for (const { name, value } of element.attributes) {
+        if (newElement.getAttribute(name) !== value) {
+            return false
+        }
+    }
+
+    const children = element.childNodes
+    const newChildren = newElement.childNodes
+    if (children.length !== newChildren.length) {
+        return false
+    }
+
+    return [...children].every((child, index) => {
+        const newChild = newChildren[index]
+        if (child instanceof Element) {
+            return newChild instanceof Element && child.tagName === newChild.tagName
+        }
+
+        return child.nodeType === newChild.nodeType && child.nodeValue === newChild.nodeValue
+    })
+}
 
 // A `data-turbo-action` frame navigation (advance / replace) is promoted to a page
 // visit that only updates the URL: Turbo still fires turbo:before-render,
@@ -173,6 +208,9 @@ export class TurboHandler {
     // Frames whose in-flight render is a morph — so turbo:frame-load (which
     // carries no renderMethod) knows to skip the coarse mount.
     #morphingFrames = new WeakSet<Element>()
+    // Elements the morph in flight changes, flagged on turbo:before-morph-element
+    // while the new markup can still be compared with the old one.
+    #morphedElements = new WeakSet<Element>()
 
     constructor(options: TurboHandlerOptions) {
         this.#onMount = options.onMount
@@ -209,7 +247,10 @@ export class TurboHandler {
         }
 
         if (this.#morphMutations) {
-            this.#bindings.push({ type: 'turbo:morph-element', handler: this.#onMorphElement })
+            this.#bindings.push(
+                { type: 'turbo:before-morph-element', handler: this.#onBeforeMorphElement },
+                { type: 'turbo:morph-element', handler: this.#onMorphElement }
+            )
         }
 
         if (this.#visitOnFrameMissing) {
@@ -242,6 +283,7 @@ export class TurboHandler {
         this.#failedSubmissionRender = false
         this.#unmountedForCache = false
         this.#morphingFrames = new WeakSet()
+        this.#morphedElements = new WeakSet()
     }
 
     // A frame with `data-turbo-follow-redirect` opts into server-side redirect
@@ -396,11 +438,22 @@ export class TurboHandler {
         return this.#morphMutations && (event as CustomEvent<RenderDetail>).detail?.renderMethod === MORPH_RENDER_METHOD
     }
 
-    // Each element Turbo morphs in place: refresh its listeners without disturbing
-    // the siblings the morph left untouched.
+    // Turbo fires turbo:morph-element for every element the morph matched, the
+    // unchanged ones and <body> included: flag the ones it changes, before it does.
+    // A removed node comes without a newElement.
+    #onBeforeMorphElement = (event: Event): void => {
+        const element = event.target
+        const newElement = (event as CustomEvent<BeforeMorphElementDetail>).detail?.newElement
+        if (element instanceof Element && newElement instanceof Element && !morphKeeps(element, newElement)) {
+            this.#morphedElements.add(element)
+        }
+    }
+
+    // Each element the morph changed in place: refresh its listeners without
+    // disturbing its ancestors and the siblings the morph left untouched.
     #onMorphElement = (event: Event): void => {
         const element = event.target
-        if (!(element instanceof Element)) {
+        if (!(element instanceof Element) || !this.#morphedElements.delete(element)) {
             return
         }
         this.#safe(() => this.#onUnmount(element))

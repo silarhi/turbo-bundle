@@ -31,6 +31,8 @@ final readonly class TurboManager
 {
     public const VARY_ATTRIBUTE = '_turbo_frame_vary';
 
+    private const STREAM_CONTENT_TYPE = 'text/vnd.turbo-stream.html';
+
     public function __construct(
         private RequestStack $requestStack,
     ) {
@@ -52,9 +54,20 @@ final readonly class TurboManager
             && false === $this->getRequest()?->headers->has('turbo-frame-follow-redirect');
     }
 
+    /**
+     * Whether Turbo sent the request: Turbo 8 adds an `X-Turbo-Request-Id` to its
+     * fetch requests, Turbo 7 sends none, but both accept Turbo Streams on their
+     * form submissions (a `data-turbo-method` link included).
+     */
     public function isTurboRequest(): bool
     {
-        return $this->getRequest()?->headers->has('x-turbo-request-id') ?? false;
+        $headers = $this->getRequest()?->headers;
+        if (null === $headers) {
+            return false;
+        }
+
+        return $headers->has('x-turbo-request-id')
+            || str_contains((string) $headers->get('accept'), self::STREAM_CONTENT_TYPE);
     }
 
     // No current request (console command, message handler, email rendering): not a Turbo request
