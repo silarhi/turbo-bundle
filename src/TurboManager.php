@@ -23,9 +23,14 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *
  * Depends on nothing but the HttpFoundation RequestStack, so it works in a
  * full Symfony app and in any project that wires Symfony components by hand.
+ *
+ * Reading the `Turbo-Frame` header flags the request (and the main request), so
+ * TurboFrameListener adds `Vary: Turbo-Frame` to responses that depend on it.
  */
 final readonly class TurboManager
 {
+    public const VARY_ATTRIBUTE = '_turbo_frame_vary';
+
     public function __construct(
         private RequestStack $requestStack,
     ) {
@@ -33,12 +38,12 @@ final readonly class TurboManager
 
     public function hasTurboFrame(): bool
     {
-        return $this->getRequest()?->headers->has('turbo-frame') ?? false;
+        return $this->getFrameRequest()?->headers->has('turbo-frame') ?? false;
     }
 
     public function getTurboFrameId(): ?string
     {
-        return $this->getRequest()?->headers->get('turbo-frame');
+        return $this->getFrameRequest()?->headers->get('turbo-frame');
     }
 
     public function followTurboFrameRedirect(): bool
@@ -56,5 +61,15 @@ final readonly class TurboManager
     private function getRequest(): ?Request
     {
         return $this->requestStack->getCurrentRequest();
+    }
+
+    // The main request too: an inline fragment that branches on the frame changes the whole page
+    private function getFrameRequest(): ?Request
+    {
+        $request = $this->getRequest();
+        $request?->attributes->set(self::VARY_ATTRIBUTE, true);
+        $this->requestStack->getMainRequest()?->attributes->set(self::VARY_ATTRIBUTE, true);
+
+        return $request;
     }
 }

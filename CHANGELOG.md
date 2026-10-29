@@ -7,6 +7,15 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 
 ## [Unreleased]
 
+### Fixed
+
+- Responses that depend on the `Turbo-Frame` request header now send `Vary: Turbo-Frame`: a page rendered through the
+  `turbo_frame` filter or the `turbo_frame_request()` / `turbo_frame_id()` functions, and a frame redirect converted to
+  `Turbo-Location`. A shared cache (HttpCache, Varnish, a CDN) could otherwise store the frame layout of a public page
+  for a request sent with `Turbo-Frame: x` and serve it to every visitor. `TurboManager` flags the current and the main
+  request when it reads the header, and `TurboFrameListener` adds the `Vary` from that flag, so responses that never
+  read it are left alone.
+
 ## [0.8.1] - 2026-10-22
 
 ### Fixed
