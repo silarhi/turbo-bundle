@@ -147,6 +147,66 @@ class TurboFrameListenerTest extends TestCase
         self::assertSame($original, $event->getResponse());
     }
 
+    public function testResponseThatReadTheFrameHeaderVariesOnIt(): void
+    {
+        $request = new Request();
+        $request->headers->set('Turbo-Frame', 'my_frame');
+        $stack = new RequestStack();
+        $stack->push($request);
+        // What the `turbo_frame` filter does while rendering the page
+        (new TurboManager($stack))->getTurboFrameId();
+
+        $response = $this->dispatch($request, new Response('frame', Response::HTTP_OK, ['Vary' => 'Accept-Encoding']))->getResponse();
+        self::assertSame(['Accept-Encoding', 'Turbo-Frame'], $response->getVary());
+    }
+
+    public function testFullPageThatReadTheFrameHeaderVariesOnIt(): void
+    {
+        // The full layout depends on the header being absent: it must not be served to a frame either
+        $request = new Request();
+        $stack = new RequestStack();
+        $stack->push($request);
+        self::assertFalse((new TurboManager($stack))->hasTurboFrame());
+
+        $response = $this->dispatch($request, new Response('page'))->getResponse();
+        self::assertSame(['Turbo-Frame'], $response->getVary());
+    }
+
+    public function testResponseThatNeverReadTheFrameHeaderDoesNotVaryOnIt(): void
+    {
+        $request = new Request();
+        $request->headers->set('Turbo-Frame', 'my_frame');
+
+        $response = $this->dispatch($request, new Response('body'))->getResponse();
+        self::assertSame([], $response->getVary());
+    }
+
+    public function testConvertedFrameRedirectVariesOnTheFrameHeader(): void
+    {
+        $request = new Request();
+        $request->headers->set('Turbo-Frame', 'my_frame');
+
+        $response = $this->dispatch($request, new RedirectResponse('/target'))->getResponse();
+        self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
+        self::assertSame(['Turbo-Frame'], $response->getVary());
+    }
+
+    public function testFragmentThatReadTheFrameHeaderMakesTheMainResponseVary(): void
+    {
+        $main = new Request();
+        $main->headers->set('Turbo-Frame', 'my_frame');
+        $fragment = Request::create('/_fragment');
+        $fragment->headers->set('Turbo-Frame', 'my_frame');
+        $stack = new RequestStack();
+        $stack->push($main);
+        $stack->push($fragment);
+        (new TurboManager($stack))->hasTurboFrame();
+        $stack->pop();
+
+        $response = $this->dispatch($main, new Response('page'))->getResponse();
+        self::assertSame(['Turbo-Frame'], $response->getVary());
+    }
+
     public function testSubscribesToKernelResponse(): void
     {
         self::assertSame(

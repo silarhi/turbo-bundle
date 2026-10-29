@@ -37,6 +37,22 @@ class TurboManagerTest extends TestCase
         self::assertNull($manager->getTurboFrameId());
     }
 
+    public function testReadingTheFrameHeaderFlagsTheRequestForVary(): void
+    {
+        $request = new Request();
+        $this->managerFor($request)->getTurboFrameId();
+
+        self::assertTrue($request->attributes->get(TurboManager::VARY_ATTRIBUTE));
+    }
+
+    public function testReadingOnlyTheRequestIdDoesNotFlagTheRequestForVary(): void
+    {
+        $request = new Request();
+        $this->managerFor($request)->isTurboRequest();
+
+        self::assertFalse($request->attributes->has(TurboManager::VARY_ATTRIBUTE));
+    }
+
     public function testFollowTurboFrameRedirectRequiresFrameWithoutFollowHeader(): void
     {
         $request = new Request();

@@ -48,6 +48,16 @@ final readonly class TurboFrameListener implements EventSubscriberInterface
 
     public function onKernelResponse(ResponseEvent $event): void
     {
+        $this->convertFrameRedirect($event);
+
+        // A shared cache must not serve the frame layout of a page to a full visit, or the other way round
+        if (true === $event->getRequest()->attributes->get(TurboManager::VARY_ATTRIBUTE)) {
+            $event->getResponse()->setVary('Turbo-Frame', false);
+        }
+    }
+
+    private function convertFrameRedirect(ResponseEvent $event): void
+    {
         $response = $event->getResponse();
         // Only redirects to somewhere: a 304 Not Modified (frame revalidated with an ETag) is a 3xx without Location
         if (!$response->isRedirection() || !$response->headers->has('Location')) {
