@@ -7,6 +7,8 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-10-29
+
 ### Fixed
 
 - Responses that depend on the `Turbo-Frame` request header now send `Vary: Turbo-Frame`: a page rendered through the
@@ -15,6 +17,14 @@ same git tag; since 0.2.1 the npm package version follows that tag.
   for a request sent with `Turbo-Frame: x` and serve it to every visitor. `TurboManager` flags the current and the main
   request when it reads the header, and `TurboFrameListener` adds the `Vary` from that flag, so responses that never
   read it are left alone.
+
+## [0.8.2] - 2026-10-29
+
+### Changed
+
+- No change to the library code: dependency updates, and `composer.json` links the documentation site.
+- The npm package is published by a hardened workflow: build and publish in separate jobs, actions pinned by SHA,
+  release tags must be on `main`.
 
 ## [0.8.1] - 2026-10-22
 
@@ -164,7 +174,9 @@ First tagged release. (`@silarhi/turbo@0.1.0` was published to npm ahead of it, 
 - `turbo_frame` Twig filter (registered when Twig is installed) to extend a lean frame template when the request targets
   a matching Turbo Frame.
 
-[Unreleased]: https://github.com/silarhi/turbo-bundle/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/silarhi/turbo-bundle/compare/v0.8.3...HEAD
+[0.8.3]: https://github.com/silarhi/turbo-bundle/compare/v0.8.2...v0.8.3
+[0.8.2]: https://github.com/silarhi/turbo-bundle/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/silarhi/turbo-bundle/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/silarhi/turbo-bundle/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/silarhi/turbo-bundle/compare/v0.6.0...v0.7.0
