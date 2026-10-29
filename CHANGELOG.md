@@ -5,7 +5,12 @@ All notable changes to `silarhi/turbo-bundle` (Composer) and `@silarhi/turbo` (n
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Both packages are released from the
 same git tag; since 0.2.1 the npm package version follows that tag.
 
-## [Unreleased]
+## [0.9.0] - Unreleased
+
+### Changed
+
+- The CI runs end-to-end tests: `TurboHandler` and `TurboFrameListener` against the real Turbo in Chromium, on Turbo
+  7.2 and 8 (`assets/e2e`, `tests/E2E`).
 
 ## [0.8.3] - 2026-10-29
 
@@ -175,6 +180,7 @@ First tagged release. (`@silarhi/turbo@0.1.0` was published to npm ahead of it, 
   a matching Turbo Frame.
 
 [Unreleased]: https://github.com/silarhi/turbo-bundle/compare/v0.8.3...HEAD
+[0.9.0]: https://github.com/silarhi/turbo-bundle/compare/v0.8.3...v0.9.0
 [0.8.3]: https://github.com/silarhi/turbo-bundle/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/silarhi/turbo-bundle/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/silarhi/turbo-bundle/compare/v0.8.0...v0.8.1

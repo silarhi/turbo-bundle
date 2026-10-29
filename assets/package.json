@@ -37,8 +37,9 @@
         "test:coverage": "vitest run --coverage",
         "test:watch": "vitest",
         "typecheck": "tsc --noEmit",
-        "lint": "biome check src test",
-        "lint:fix": "biome check --write src test"
+        "lint": "biome check src test e2e playwright.config.ts",
+        "lint:fix": "biome check --write src test e2e playwright.config.ts",
+        "e2e": "pnpm build && playwright test"
     },
     "peerDependencies": {
         "@hotwired/turbo": "^7.1.0 || ^8.0"
@@ -46,6 +47,8 @@
     "devDependencies": {
         "@biomejs/biome": "2.6.3",
         "@hotwired/turbo": "^8.0.0",
+        "@playwright/test": "^1.64.1",
+        "@types/node": "^26.6.6",
         "@vitest/coverage-v8": "^5.0.5",
         "jsdom": "^30.0.0",
         "tsdown": "^0.23.1",

@@ -13,7 +13,8 @@
         "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
-        "outDir": "dist"
+        "outDir": "dist",
+        "types": ["node"]
     },
-    "include": ["src", "test"]
+    "include": ["src", "test", "e2e", "playwright.config.ts"]
 }
