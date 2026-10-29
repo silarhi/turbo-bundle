@@ -405,14 +405,95 @@ describe('TurboHandler', () => {
             handler.start()
         }
 
-        it('re-mounts each element morphed in place via turbo:morph-element', () => {
-            startMorphHandler()
-            const el = document.createElement('div')
-            document.body.appendChild(el)
+        // What Turbo dispatches around the morph of one element: before (with the new markup), then after
+        function morph(element: Element, newHtml?: string): void {
+            const template = document.createElement('template')
+            template.innerHTML = newHtml ?? ''
+            const newElement = newHtml === undefined ? undefined : template.content.firstElementChild
+            element.dispatchEvent(
+                new CustomEvent('turbo:before-morph-element', {
+                    bubbles: true,
+                    cancelable: true,
+                    detail: { newElement },
+                })
+            )
+            element.dispatchEvent(new CustomEvent('turbo:morph-element', { bubbles: true, detail: { newElement } }))
+        }
 
-            el.dispatchEvent(new CustomEvent('turbo:morph-element', { bubbles: true, detail: {} }))
+        function element(html: string): Element {
+            document.body.insertAdjacentHTML('beforeend', html)
+
+            return document.body.lastElementChild as Element
+        }
+
+        it('re-mounts an element whose attributes the morph changes', () => {
+            startMorphHandler()
+            const el = element('<p data-count="0">Count</p>')
+
+            morph(el, '<p data-count="1">Count</p>')
             expect(onUnmount).toHaveBeenCalledWith(el)
             expect(onMount).toHaveBeenCalledWith(el)
+        })
+
+        it('re-mounts an element whose own text the morph changes', () => {
+            startMorphHandler()
+            const el = element('<p>Count 0</p>')
+
+            morph(el, '<p>Count 1</p>')
+            expect(onMount).toHaveBeenCalledWith(el)
+        })
+
+        it('re-mounts an element the morph removes a listener addition from', () => {
+            startMorphHandler()
+            const el = element('<p>Widget<span class="badge">mounted</span></p>')
+
+            morph(el, '<p>Widget</p>')
+            expect(onMount).toHaveBeenCalledWith(el)
+        })
+
+        it('leaves an element the morph keeps as it is alone', () => {
+            startMorphHandler()
+            const el = element('<p class="a" data-x="1">Stable <b>text</b></p>')
+
+            morph(el, '<p data-x="1" class="a">Stable <b>text</b></p>')
+            expect(onUnmount).not.toHaveBeenCalled()
+            expect(onMount).not.toHaveBeenCalled()
+        })
+
+        it('leaves an ancestor alone when only a descendant changes', () => {
+            startMorphHandler()
+            const el = element('<div><p>Count 0</p></div>')
+
+            // Its child element keeps its tag: the change is the child's, on its own event
+            morph(el, '<div><p>Count 1</p></div>')
+            expect(onMount).not.toHaveBeenCalled()
+        })
+
+        it('re-mounts an ancestor whose child elements the morph replaces', () => {
+            startMorphHandler()
+            const el = element('<div><p>Old</p></div>')
+
+            morph(el, '<div><ul><li>New</li></ul></div>')
+            expect(onMount).toHaveBeenCalledWith(el)
+        })
+
+        it('ignores turbo:morph-element without a turbo:before-morph-element that saw a change', () => {
+            startMorphHandler()
+            const el = element('<p>Removed</p>')
+
+            // A node Turbo removes: turbo:before-morph-element without a newElement
+            morph(el)
+            el.dispatchEvent(new CustomEvent('turbo:morph-element', { bubbles: true, detail: {} }))
+            expect(onMount).not.toHaveBeenCalled()
+        })
+
+        it('re-mounts an element once per morph', () => {
+            startMorphHandler()
+            const el = element('<p>Count 0</p>')
+
+            morph(el, '<p>Count 1</p>')
+            el.dispatchEvent(new CustomEvent('turbo:morph-element', { bubbles: true, detail: {} }))
+            expect(onMount).toHaveBeenCalledTimes(1)
         })
 
         it('skips the coarse body unmount/mount on a Drive morph render', () => {
@@ -458,10 +539,9 @@ describe('TurboHandler', () => {
         })
 
         it('ignores turbo:morph-element unless opted in', () => {
-            const el = document.createElement('div')
-            document.body.appendChild(el)
+            const el = element('<p data-count="0"></p>')
 
-            el.dispatchEvent(new CustomEvent('turbo:morph-element', { bubbles: true, detail: {} }))
+            morph(el, '<p data-count="1"></p>')
             expect(onMount).not.toHaveBeenCalled()
             expect(onUnmount).not.toHaveBeenCalled()
         })

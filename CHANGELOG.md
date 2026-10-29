@@ -12,6 +12,13 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 - The CI runs end-to-end tests: `TurboHandler` and `TurboFrameListener` against the real Turbo in Chromium, on Turbo
   7.2 and 8 (`assets/e2e`, `tests/E2E`).
 
+### Fixed
+
+- `morphMutations` no longer re-mounts the whole page on a Drive morph refresh. Turbo fires `turbo:morph-element` for
+  every element the morph matched, the unchanged ones and `<body>` included, and `onMount(<body>)` re-initialized every
+  listener. The handler now compares each element with its new markup on `turbo:before-morph-element`, and only
+  re-mounts the elements whose attributes or own child nodes change.
+
 ## [0.8.3] - 2026-10-29
 
 ### Fixed

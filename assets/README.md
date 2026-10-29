@@ -74,8 +74,9 @@ like a replace: it unmounts then re-mounts the whole container, re-initialising 
 nodes the morph preserved.
 
 Set `morphMutations: true` to instead skip that coarse re-init on morph renders and refresh only the
-nodes Turbo actually morphed, via the `turbo:morph-element` event — leaving preserved widgets (an open
-select, a focused field) untouched. Scope: it covers elements morphed **in place**; subtrees a morph
+elements the morph changed (their attributes or their own child nodes, compared on
+`turbo:before-morph-element`) — leaving preserved widgets (an open select, a focused field) and the
+ancestors of the changed elements untouched. Scope: it covers elements morphed **in place**; subtrees a morph
 adds or removes wholesale aren't re-mounted by this path. It requires `onMount` / `onUnmount` to be
 safe to call on an individual element.
 
