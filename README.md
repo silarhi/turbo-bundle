@@ -26,6 +26,10 @@
         <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fsilarhi%2Fturbo-bundle%2Fbadges%2Fcoverage.json&style=for-the-badge" alt="Coverage">
     </picture>
     <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fsilarhi%2Fturbo-bundle%2Fbadges%2Fcoverage-js.json&style=for-the-badge&labelColor=1a1a2e">
+        <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fsilarhi%2Fturbo-bundle%2Fbadges%2Fcoverage-js.json&style=for-the-badge" alt="JavaScript coverage">
+    </picture>
+    <picture>
         <source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/npm/v/@silarhi/turbo?style=for-the-badge&label=npm&color=cb3837&labelColor=1a1a2e">
         <img src="https://img.shields.io/npm/v/@silarhi/turbo?style=for-the-badge&label=npm&color=cb3837" alt="npm Version">
     </picture>

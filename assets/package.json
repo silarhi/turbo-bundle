@@ -34,6 +34,7 @@
     "scripts": {
         "build": "tsdown",
         "test": "vitest run",
+        "test:coverage": "vitest run --coverage",
         "test:watch": "vitest",
         "typecheck": "tsc --noEmit",
         "lint": "biome check src test",
@@ -45,6 +46,7 @@
     "devDependencies": {
         "@biomejs/biome": "2.6.3",
         "@hotwired/turbo": "^8.0.0",
+        "@vitest/coverage-v8": "^5.0.5",
         "jsdom": "^30.0.0",
         "tsdown": "^0.23.1",
         "typescript": "^7.0.0",
