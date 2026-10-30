@@ -60,7 +60,7 @@ The two halves solve different problems and only meet on redirect following (the
 ## Features
 
 - **One lifecycle hook pair**: `onMount` / `onUnmount` run on Drive renders, frame loads and Stream mutations alike
-- **Morph-aware**: Stream renders are diffed per node; Drive and Frame morphs can opt into per-element refresh
+- **Morph-aware**: Stream renders are diffed per node; Drive, frame and stream morphs can opt into per-element refresh
 - **Frame-redirect following**: a redirect inside a Turbo Frame becomes a full Drive visit, `DELETE` redirects too
 - **`turbo_frame` Twig filter**: extend a lean frame template only when the request targets a matching frame
 - **Framework-optional**: the bundle gives zero-config wiring; the classes also work standalone

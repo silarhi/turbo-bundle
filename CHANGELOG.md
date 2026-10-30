@@ -5,6 +5,47 @@ All notable changes to `silarhi/turbo-bundle` (Composer) and `@silarhi/turbo` (n
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Both packages are released from the
 same git tag; since 0.2.1 the npm package version follows that tag.
 
+## [0.10.0] - Unreleased
+
+### Changed
+
+- The end-to-end tests cover every way Turbo morphs (Drive refresh, a refresh asked by a stream, frames with
+  `refresh="morph"`, streams with `method="morph"`), with and without `morphMutations`, and `data-turbo-permanent`,
+  `turbo-cache-control`, eager and lazy frames, `_top`, prefetch and view transitions.
+
+### Fixed
+
+- A Turbo Stream with `method="morph"` (`replace` or `update`) re-mounts its targets. Turbo morphs them in place,
+  which the child list diff of `streamMutations` doesn't see: nothing was unmounted or mounted, and a widget in the
+  target (a Tom Select) lost its markup and stopped working. Each target is now unmounted before the render and mounted
+  after, like a frame.
+- `morphMutations` unmounts the elements a morph removes, and mounts the ones it adds. Turbo fires
+  `turbo:before-morph-element` without a new element for a removed one, and nothing for an added one: the removed
+  widgets leaked, and the added ones were never mounted.
+- `morphMutations` keeps the value the server sends to a widget it re-mounts. The handler unmounted a changed element
+  after the morph: Tom Select's `destroy()` then put back the `<option>` elements it found at init, with the old
+  selected value. A widget re-mounted in the middle of a stream morph also lost its markup, which the rest of the morph
+  removed. Changed elements are now unmounted before the morph touches them, and mounted once the whole morph is done.
+- `morphMutations` no longer mounts the widgets of a `<turbo-frame refresh="morph">` twice. Turbo 8 reports a frame
+  morph as `renderMethod: "replace"`: the handler re-mounted the whole frame on top of its elements. It now tells a
+  frame morph from its render function.
+- The widgets inside a `data-turbo-permanent` element stay mounted, with their state, across Drive visits, Back and
+  previews from the cache, frame navigations, morph refreshes and streams. Turbo moves the element to the new content,
+  but the handler unmounted and mounted it with the rest of the page: a Tom Select went back to its first value. The
+  handler now moves the elements Turbo keeps out of their container while it calls `onUnmount` / `onMount` on it
+  (with `moveBefore()` where the browser has it, which keeps an iframe or a video playing). The snapshot cache gets
+  the markup each one had before its first mount. A stream that keeps one inserts a copy of it: the handler puts the
+  element back in place of the copy.
+- A frame that renders before the first `turbo:load`, or while a Drive render is in flight, is mounted once. The body
+  mount mounted it a second time ("Tom Select already initialized"), after `turbo:frame-load` or between the frame
+  render and its `turbo:frame-load`.
+- The nodes a `<turbo-stream>` of the page itself inserts are mounted. Turbo renders it once imported, before the app
+  starts the handler, which never saw its `turbo:before-stream-render`: they were mounted only when the render came
+  before the first `turbo:load`.
+- With `morphMutations`, a stream `replace` morph that targets a widget (a `<select>` with a Tom Select) no longer
+  removes the nodes after it. The handler unmounted the target in the middle of the morph, removing the markup Turbo
+  stops the morph at; it now unmounts a target that changes before the render.
+
 ## [0.9.0] - 2026-10-30
 
 ### Changed
@@ -202,6 +243,7 @@ First tagged release. (`@silarhi/turbo@0.1.0` was published to npm ahead of it, 
   a matching Turbo Frame.
 
 [Unreleased]: https://github.com/silarhi/turbo-bundle/compare/v0.8.3...HEAD
+[0.10.0]: https://github.com/silarhi/turbo-bundle/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/silarhi/turbo-bundle/compare/v0.8.3...v0.9.0
 [0.8.3]: https://github.com/silarhi/turbo-bundle/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/silarhi/turbo-bundle/compare/v0.8.1...v0.8.2

@@ -37,20 +37,41 @@ _what_.
 
 ## When the callbacks run
 
-| Turbo event                                                                           | Call                                                                                                       |
-| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| First `turbo:load`                                                                    | `onMount(container)`                                                                                       |
-| `turbo:before-cache`                                                                  | `onUnmount(container)`: the page Turbo caches holds the server markup, not what your listeners added       |
-| `turbo:before-render` (Drive visit)                                                   | `onUnmount(container)`                                                                                     |
-| `turbo:render` followed by `turbo:load`                                               | `onMount(container)`                                                                                       |
-| `turbo:load` without a render (a frame navigation with `data-turbo-action="advance"`) | nothing: the body did not change                                                                           |
-| `turbo:render` after a failed form submission outside any frame                       | `onMount(container)`: Turbo renders the response (a `422` form) but fires no `turbo:load`                  |
-| `turbo:before-frame-render`                                                           | `onUnmount(frame)`                                                                                         |
-| `turbo:frame-load`                                                                    | `onMount(frame)`                                                                                           |
-| `turbo:before-stream-render`                                                          | `onUnmount` / `onMount` on each removed / inserted node: [Stream mutations](/javascript/stream-mutations/) |
-| `turbo:morph-element` (opt-in)                                                        | `onUnmount(element)` then `onMount(element)`: [Morph mutations](/javascript/morph-mutations/)              |
+| Turbo event                                                                           | Call                                                                                                                       |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| First `turbo:load`                                                                    | `onMount(container)`                                                                                                       |
+| `turbo:before-cache`                                                                  | `onUnmount(container)`: the page Turbo caches holds the server markup, not what your listeners added                       |
+| `turbo:before-render` (Drive visit)                                                   | `onUnmount(container)`                                                                                                     |
+| `turbo:render` followed by `turbo:load`                                               | `onMount(container)`                                                                                                       |
+| `turbo:load` without a render (a frame navigation with `data-turbo-action="advance"`) | nothing: the body did not change                                                                                           |
+| `turbo:render` after a failed form submission outside any frame                       | `onMount(container)`: Turbo renders the response (a `422` form) but fires no `turbo:load`                                  |
+| `turbo:before-frame-render`                                                           | `onUnmount(frame)`                                                                                                         |
+| `turbo:frame-load`                                                                    | `onMount(frame)`                                                                                                           |
+| `turbo:before-stream-render`                                                          | `onUnmount` / `onMount` on each removed / inserted node: [Stream mutations](/javascript/stream-mutations/)                 |
+| `turbo:before-morph-element` (opt-in)                                                 | `onUnmount(element)` changed or removed, `onMount` once the morph is done: [Morph mutations](/javascript/morph-mutations/) |
 
-`container` is the element returned by `getContainer`, `document.body` by default. The handler also listens to:
+`container` is the element returned by `getContainer`, `document.body` by default.
+
+Each widget is mounted once, whatever order Turbo's events come in: a frame or a stream that renders before the first
+`turbo:load` (an eager frame, a `<turbo-stream>` in the page itself) is not mounted again with the body.
+
+## Permanent elements
+
+Turbo moves an element with `data-turbo-permanent` (and an `id`) to the new content when that content has one with the
+same `id`: on a Drive visit, Back and a preview from the cache, a frame navigation, a morph refresh and a stream. The
+widgets inside stay mounted, with their state (a picked value, an open dropdown, a playing video):
+
+- the handler moves the elements Turbo keeps out of the container while it calls `onUnmount` and `onMount` on it, and
+  back right after. It uses `moveBefore()` where the browser has it, which keeps an iframe loaded and a video playing;
+  elsewhere, the element is detached for that call, as Turbo itself does when it moves it to the new page,
+- the copy of the page Turbo caches gets the markup each permanent element had before its first mount: a page
+  restored from the cache without the element mounts it once,
+- a stream that keeps one inserts a copy of it, and takes the element itself out of the page: the handler puts the
+  element back in place of the copy.
+
+A permanent element the new content doesn't have is unmounted with its container.
+
+The handler also listens to:
 
 - `turbo:before-fetch-request`, to add the `Turbo-Frame-Follow-Redirect` header to the requests of frames carrying
   `data-turbo-follow-redirect` ([Keeping a redirect in its frame](/javascript/follow-redirect/)),
@@ -121,7 +142,8 @@ Every option is described in the [options reference](/reference/turbo-handler/).
 handled:
 
 - [`streamMutations`](/javascript/stream-mutations/), on by default: per-node lifecycle for Turbo Streams.
-- [`morphMutations`](/javascript/morph-mutations/), off by default: per-element refresh for Drive and Frame morphs.
+- [`morphMutations`](/javascript/morph-mutations/), off by default: per-element refresh for Drive, frame and stream
+  morphs.
 - [`visitOnFrameMissing`](/javascript/frame-missing/), off by default: render a frame response without a matching frame
   as a full page.
 - [`frameStreams`](/javascript/frame-streams/), off by default: run the streams a frame response carries outside its
