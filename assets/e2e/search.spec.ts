@@ -1,5 +1,5 @@
 import { expect, type Page } from '@playwright/test'
-import { mounted, open, pick, test, tomSelects, unmounted } from './helpers'
+import { mounted, nextLoad, open, pick, test, tomSelects, unmounted } from './helpers'
 
 /*
  * A list filtered by a search form outside its results frame (/list): the form targets the frame with
@@ -18,9 +18,9 @@ async function search(page: Page): Promise<void> {
         }
     })
     await page.fill('#q', 'foo')
-    await page.click('#search button')
+    // The promoted visit is done once it fires turbo:load, after the results are mounted
+    await nextLoad(page, () => page.click('#search button'))
     await expect(page.locator('#summary')).toContainText('Results for "foo", status "open", page 1')
-    // The results render first, turbo:frame-load mounts them after
     await expect.poll(() => mounted(page)).toEqual(['summary', 'row-1-1', 'row-1-2'])
 }
 
@@ -61,10 +61,10 @@ test('Back after a search restores the list, its widgets mounted once', async ({
 test('Back after two searches restores the first one, its widgets mounted once', async ({ page }) => {
     await search(page)
     await page.evaluate(() => window.e2eLog.splice(0))
-    await page.click('#next')
+    // Back once Turbo is done with page 2: earlier, it cancels it (hotwired/turbo#1579)
+    await nextLoad(page, () => page.click('#next'))
     await expect(page).toHaveURL('/list?q=foo&status=open&page=2')
-    // Back once page 2 is mounted: earlier, Turbo cancels it (hotwired/turbo#1579)
-    await expect.poll(() => mounted(page)).toEqual(['summary', 'row-2-1', 'row-2-2'])
+    expect(await mounted(page)).toEqual(['summary', 'row-2-1', 'row-2-2'])
     await page.goBack()
 
     await expect(page).toHaveURL('/list?q=foo&status=open')

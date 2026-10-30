@@ -11,12 +11,53 @@ import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vite
 import { TurboHandler } from '../src/index'
 
 type Lifecycle = (container: Element) => void
+type Render = (currentElement: Element, newElement: Element) => unknown
+
+interface RenderDetail {
+    renderMethod?: string
+    newBody?: Element
+    newFrame?: Element
+    render?: Render
+}
 
 function fire<T>(type: string, detail?: T): CustomEvent<T> {
     const event = new CustomEvent(type, { detail, cancelable: true })
     document.dispatchEvent(event)
 
     return event
+}
+
+// What Turbo's render functions do: the new <body> in place of the old, the new content in the frame
+function swapBody(currentElement: Element, newElement: Element): void {
+    currentElement.replaceWith(newElement)
+}
+
+function swapFrame(currentElement: Element, newElement: Element): void {
+    currentElement.replaceChildren(...newElement.childNodes)
+}
+
+// A Drive render as Turbo runs it: turbo:before-render, then the render function its listeners left
+function driveRender(newBody: Element, detail: RenderDetail = {}): unknown {
+    const event = fire<RenderDetail>('turbo:before-render', {
+        renderMethod: 'replace',
+        newBody,
+        render: swapBody,
+        ...detail,
+    })
+
+    return event.detail.render?.(document.body, newBody)
+}
+
+// A frame render as Turbo runs it: turbo:before-frame-render on the frame, then the render function
+function frameRender(frame: Element, newFrame: Element, detail: RenderDetail = {}): unknown {
+    const event = new CustomEvent<RenderDetail>('turbo:before-frame-render', {
+        bubbles: true,
+        cancelable: true,
+        detail: { renderMethod: 'replace', newFrame, render: swapFrame, ...detail },
+    })
+    frame.dispatchEvent(event)
+
+    return event.detail.render?.(frame, newFrame)
 }
 
 describe('TurboHandler', () => {
@@ -36,119 +77,135 @@ describe('TurboHandler', () => {
         handler.stop()
     })
 
+    // The first page mounted, the calls it made forgotten
+    function load(): void {
+        fire('turbo:load')
+        onMount.mockClear()
+        onUnmount.mockClear()
+    }
+
+    function turboFrame(): Element {
+        const frame = document.createElement('turbo-frame')
+        document.body.appendChild(frame)
+
+        return frame
+    }
+
     it('mounts the body on the initial turbo:load', () => {
         fire('turbo:load')
         expect(onMount).toHaveBeenCalledWith(document.body)
     })
 
-    it('unmounts the body before a Drive render', () => {
-        fire('turbo:before-render')
-        expect(onUnmount).toHaveBeenCalledWith(document.body)
+    it('mounts the body once, whatever the turbo:load events after the first', () => {
+        fire('turbo:load')
+        fire('turbo:load') // a frame-advance visit renders nothing, and fires turbo:load
+        expect(onMount.mock.calls).toEqual([[document.body]])
     })
 
-    it('mounts a frame on turbo:frame-load and unmounts it before re-render', () => {
-        const frame = document.createElement('turbo-frame')
-        document.body.appendChild(frame)
+    it('unmounts the body right before a Drive render swaps it, and mounts the new one right after', () => {
+        load()
+        const body = document.body
+        const newBody = document.createElement('body')
+        const calls: string[] = []
+        onUnmount.mockImplementation((container) => calls.push(`unmount ${container === body ? 'old' : 'new'}`))
+        onMount.mockImplementation((container) => calls.push(`mount ${container === newBody ? 'new' : 'old'}`))
 
-        frame.dispatchEvent(new CustomEvent('turbo:frame-load', { bubbles: true }))
-        expect(onMount).toHaveBeenCalledWith(frame)
+        driveRender(newBody, {
+            render: (currentElement, newElement) => {
+                calls.push('render')
+                swapBody(currentElement, newElement)
+            },
+        })
 
-        frame.dispatchEvent(new CustomEvent('turbo:before-frame-render', { bubbles: true }))
-        expect(onUnmount).toHaveBeenCalledWith(frame)
+        // No turbo:load needed: a failed submission renders without one
+        expect(calls).toEqual(['unmount old', 'render', 'mount new'])
     })
 
-    it('ignores a frame-advance turbo:load (willRender false) after the first load', () => {
-        fire('turbo:load') // initial load consumes initialLoad
-        onMount.mockClear()
+    it('does nothing for a turbo:before-render whose render Turbo does not run', () => {
+        load()
+        fire('turbo:before-render', { renderMethod: 'replace', render: swapBody })
 
-        fire('turbo:load') // frame advance: no preceding turbo:render
+        expect(onUnmount).not.toHaveBeenCalled()
         expect(onMount).not.toHaveBeenCalled()
     })
 
-    it('mounts after a real Drive render (turbo:render then turbo:load)', () => {
-        fire('turbo:load') // initial
-        onMount.mockClear()
+    it('unmounts a frame right before Turbo swaps its content, and mounts it right after', () => {
+        load()
+        const frame = turboFrame()
 
-        fire('turbo:render')
-        fire('turbo:load')
-        expect(onMount).toHaveBeenCalledWith(document.body)
+        frameRender(frame, document.createElement('turbo-frame'))
+
+        expect(onUnmount.mock.calls).toEqual([[frame]])
+        expect(onMount.mock.calls).toEqual([[frame]])
     })
 
-    it('mounts the body when a failed submission renders without a visit', () => {
-        fire('turbo:load') // initial
-        onMount.mockClear()
+    it('mounts what a render puts in a container it never mounted, unmounting nothing', () => {
+        const frame = turboFrame()
 
-        fire('turbo:submit-end', {
-            success: false,
-            fetchResponse: { contentType: 'text/html; charset=utf-8' },
-            formSubmission: { fetchRequest: { headers: {} } },
-        })
-        fire('turbo:render')
-        expect(onMount).toHaveBeenCalledWith(document.body)
+        frameRender(frame, document.createElement('turbo-frame'))
+
+        expect(onUnmount).not.toHaveBeenCalled()
+        expect(onMount.mock.calls).toEqual([[frame]])
     })
 
-    describe('submissions that do not render the body directly', () => {
-        it.each([
-            ['a successful submission', { success: true, fetchResponse: { contentType: 'text/html' } }],
-            ['a failed non-HTML submission', { success: false, fetchResponse: { contentType: 'application/json' } }],
-            ['a failed submission without a response', { success: false }],
-        ])('waits for turbo:load after %s', (_label, detail) => {
-            fire('turbo:load') // initial
-            onMount.mockClear()
-
-            fire('turbo:submit-end', { ...detail, formSubmission: { fetchRequest: { headers: {} } } })
-            fire('turbo:render')
-            expect(onMount).not.toHaveBeenCalled()
-
-            fire('turbo:load')
-            expect(onMount.mock.calls).toEqual([[document.body]])
+    it('mounts the new content even when a listener throws on the old one', () => {
+        load()
+        const error = new Error('listener failed')
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+        onUnmount.mockImplementation(() => {
+            throw error
         })
+        const newBody = document.createElement('body')
 
-        it('does not mount the body for a failed submission inside a frame', () => {
-            fire('turbo:load') // initial
-            onMount.mockClear()
+        driveRender(newBody)
 
-            fire('turbo:submit-end', {
-                success: false,
-                fetchResponse: { contentType: 'text/html; charset=utf-8' },
-                formSubmission: { fetchRequest: { headers: { 'Turbo-Frame': 'crud-form' } } },
-            })
-            fire('turbo:render')
-
-            expect(onMount).not.toHaveBeenCalled()
-        })
+        expect(onMount.mock.calls).toEqual([[newBody]])
+        expect(consoleError).toHaveBeenCalledWith(error)
+        consoleError.mockRestore()
     })
 
     describe('snapshot cache', () => {
         it('unmounts the body before Turbo snapshots it', () => {
-            fire('turbo:load') // initial
+            fire('turbo:load')
 
             fire('turbo:before-cache')
 
             expect(onUnmount).toHaveBeenCalledWith(document.body)
         })
 
-        it('mounts the body on the next turbo:load even without a render that mounts it', () => {
-            fire('turbo:load') // initial
-            onMount.mockClear()
+        it('mounts the body on the next turbo:load when no render follows', () => {
+            load()
 
-            // A morph refresh with morphMutations: no coarse mount from turbo:render
             fire('turbo:before-cache')
             fire('turbo:load')
 
             expect(onMount).toHaveBeenCalledWith(document.body)
         })
 
-        it('mounts the body once after a cached visit that renders', () => {
-            fire('turbo:load') // initial
-            onMount.mockClear()
+        it('mounts the new body once after a cached visit that renders', () => {
+            load()
+            const body = document.body
+            const newBody = document.createElement('body')
 
             fire('turbo:before-cache')
-            fire('turbo:before-render', { renderMethod: 'replace' })
-            fire('turbo:render', { renderMethod: 'replace' })
+            driveRender(newBody)
             fire('turbo:load')
 
-            expect(onMount.mock.calls).toEqual([[document.body]])
+            expect(onUnmount.mock.calls).toEqual([[body]])
+            expect(onMount.mock.calls).toEqual([[newBody]])
+        })
+
+        it('leaves a preview of the cache unmounted, for the render of the response to mount', () => {
+            load()
+            fire('turbo:before-cache')
+            const newBody = document.createElement('body')
+
+            document.documentElement.setAttribute('data-turbo-preview', '')
+            driveRender(document.createElement('body'))
+            document.documentElement.removeAttribute('data-turbo-preview')
+            driveRender(newBody)
+
+            expect(onMount.mock.calls).toEqual([[newBody]])
         })
     })
 
@@ -233,67 +290,30 @@ describe('TurboHandler', () => {
         })
 
         it('re-mounts only the frame, not the body, when the visit only advances the URL', () => {
-            fire('turbo:load') // initial
-            onMount.mockClear()
-            const frame = document.createElement('turbo-frame')
-            document.body.appendChild(frame)
+            load()
+            const frame = turboFrame()
 
             // What Turbo 8 dispatches for an advance frame navigation: the frame render, then a
-            // page visit with willRender false that still fires the page render events
-            frame.dispatchEvent(new CustomEvent('turbo:before-frame-render', { bubbles: true }))
-            frame.dispatchEvent(new CustomEvent('turbo:frame-load', { bubbles: true }))
+            // page visit with willRender false, which fires turbo:before-render and turbo:load but
+            // never runs the render
+            frameRender(frame, document.createElement('turbo-frame'))
             currentVisit('started', false)
-            fire('turbo:before-render', { renderMethod: 'replace' })
-            fire('turbo:render', { renderMethod: 'replace' })
+            fire('turbo:before-render', { renderMethod: 'replace', render: swapBody })
             fire('turbo:load')
 
             expect(onUnmount.mock.calls).toEqual([[frame]])
             expect(onMount.mock.calls).toEqual([[frame]])
         })
 
-        it('still mounts a failed submission rendered after a completed renderless visit', () => {
-            fire('turbo:load') // initial
-            onMount.mockClear()
-            // The navigator keeps the last visit, here a finished frame promotion
-            currentVisit('completed', false)
-
-            fire('turbo:submit-end', {
-                success: false,
-                fetchResponse: { contentType: 'text/html; charset=utf-8' },
-                formSubmission: { fetchRequest: { headers: {} } },
-            })
-            fire('turbo:before-render', { renderMethod: 'replace' })
-            fire('turbo:render', { renderMethod: 'replace' })
-
-            expect(onUnmount).toHaveBeenCalledWith(document.body)
-            expect(onMount).toHaveBeenCalledWith(document.body)
-        })
-
         it('leaves the page mounted when a promoted frame visit caches its snapshot', () => {
-            fire('turbo:load') // initial
-            onMount.mockClear()
+            load()
             currentVisit('started', false)
 
             fire('turbo:before-cache')
-            fire('turbo:before-render', { renderMethod: 'replace' })
-            fire('turbo:render', { renderMethod: 'replace' })
             fire('turbo:load')
 
             expect(onUnmount).not.toHaveBeenCalled()
             expect(onMount).not.toHaveBeenCalled()
-        })
-
-        it('re-mounts the body for a visit that renders', () => {
-            fire('turbo:load') // initial
-            onMount.mockClear()
-            currentVisit('started', true)
-
-            fire('turbo:before-render', { renderMethod: 'replace' })
-            fire('turbo:render', { renderMethod: 'replace' })
-            fire('turbo:load')
-
-            expect(onUnmount).toHaveBeenCalledWith(document.body)
-            expect(onMount).toHaveBeenCalledWith(document.body)
         })
     })
 
@@ -451,9 +471,8 @@ describe('TurboHandler', () => {
         handler.start()
 
         // Dispatched on the document itself: there is no frame / morphed element to act on
-        fire('turbo:frame-load')
-        fire('turbo:before-frame-render')
-        fire('turbo:morph-element')
+        fire('turbo:before-frame-render', { render: swapFrame })
+        fire('turbo:before-morph-element')
 
         expect(onMount).not.toHaveBeenCalled()
         expect(onUnmount).not.toHaveBeenCalled()
@@ -520,6 +539,7 @@ describe('TurboHandler', () => {
 
     describe('stream mutations (morph)', () => {
         it('mounts inserted nodes and unmounts removed nodes by default', async () => {
+            load()
             const removed = document.createElement('div')
             document.body.appendChild(removed)
             const added = document.createElement('section')
@@ -605,6 +625,7 @@ describe('TurboHandler', () => {
         }
 
         it('re-mounts the whole target of a stream morph by default', async () => {
+            load()
             const target = document.createElement('div')
             target.innerHTML = '<p>Old</p>'
             document.body.appendChild(target)
@@ -625,6 +646,7 @@ describe('TurboHandler', () => {
         })
 
         it('mounts what a stream morph adds outside its target, the target replaced', async () => {
+            load()
             const target = document.createElement('div')
             document.body.appendChild(target)
             const added = document.createElement('section')
@@ -645,6 +667,7 @@ describe('TurboHandler', () => {
             handler.stop()
             handler = new TurboHandler({ onMount, onUnmount, morphMutations: true })
             handler.start()
+            load()
             const target = document.createElement('p')
             target.textContent = 'Old'
             document.body.appendChild(target)
@@ -667,6 +690,7 @@ describe('TurboHandler', () => {
         })
 
         it('leaves a stream that replaces without morph to the node diff', async () => {
+            load()
             const target = document.createElement('div')
             document.body.appendChild(target)
             const added = document.createElement('section')
@@ -702,55 +726,82 @@ describe('TurboHandler', () => {
             return element
         }
 
+        // The first page mounted, the calls it made forgotten
+        function loadPage(): void {
+            fire('turbo:load')
+            for (const callback of [onMount, onUnmount]) {
+                callback.mockClear()
+                seen.set(callback, [])
+            }
+        }
+
+        // What Turbo does around a render that keeps the element: a placeholder in the new
+        // content during the render, then the element in place of the placeholder
+        function bardo(live: Element, newContent: Element, render: () => unknown): void {
+            const placeholder = document.createElement('meta')
+            newContent.querySelector(`#${live.id}`)?.replaceWith(placeholder)
+            render()
+            live.replaceWith(live.cloneNode(true))
+            placeholder.replaceWith(live)
+        }
+
         beforeEach(() => {
             for (const callback of [onMount, onUnmount]) {
-                const calls: boolean[] = []
-                seen.set(callback, calls)
+                seen.set(callback, [])
                 callback.mockImplementation((container) => {
-                    calls.push(container.querySelector('#player') !== null)
+                    seen.get(callback)?.push(container.querySelector('#player') !== null)
                 })
             }
             document.body.innerHTML = `${player}<p id="other">Other</p>`
         })
 
         it('leaves the permanent elements the new page has out of the unmount and mount of a Drive render', () => {
-            fire('turbo:load') // consume initialLoad
-            const live = document.getElementById('player')
+            loadPage()
+            const live = document.getElementById('player') as Element
+            const newBody = body(player)
 
-            fire('turbo:before-render', { newBody: body(player) })
-            expect(sawPlayer(onUnmount)).toEqual([false])
-            expect(document.getElementById('player')).toBe(live)
-
-            fire('turbo:render', {})
+            const event = fire<RenderDetail>('turbo:before-render', { newBody, render: swapBody })
+            bardo(live, newBody, () => event.detail.render?.(document.body, newBody))
             fire('turbo:load')
-            expect(sawPlayer(onMount)).toEqual([true, false])
+
+            expect(sawPlayer(onUnmount)).toEqual([false])
+            expect(sawPlayer(onMount)).toEqual([false])
+            expect(document.getElementById('player')).toBe(live)
         })
 
         it('unmounts a permanent element the new page drops with the body', () => {
-            fire('turbo:load') // consume initialLoad
+            loadPage()
 
-            fire('turbo:before-render', { newBody: body('<p>No player</p>') })
+            driveRender(body('<p>No player</p>'))
             expect(sawPlayer(onUnmount)).toEqual([true])
         })
 
         it('leaves every permanent element mounted on a morph render', () => {
-            fire('turbo:load') // consume initialLoad
+            loadPage()
 
-            fire('turbo:before-render', { renderMethod: 'morph', newBody: body('<p>No player</p>') })
+            driveRender(body('<p>No player</p>'), { renderMethod: 'morph', render: () => {} })
             expect(sawPlayer(onUnmount)).toEqual([false])
+            expect(sawPlayer(onMount)).toEqual([false])
         })
 
         it('leaves the permanent elements a frame keeps out of its unmount and mount', () => {
             document.body.innerHTML = `<turbo-frame id="frame">${player}</turbo-frame>`
+            loadPage()
             const frame = document.getElementById('frame') as Element
+            const live = document.getElementById('player') as Element
             const newFrame = document.createElement('turbo-frame')
             newFrame.innerHTML = player
 
-            frame.dispatchEvent(new CustomEvent('turbo:before-frame-render', { bubbles: true, detail: { newFrame } }))
-            frame.dispatchEvent(new CustomEvent('turbo:frame-load', { bubbles: true }))
+            const event = new CustomEvent<RenderDetail>('turbo:before-frame-render', {
+                bubbles: true,
+                detail: { newFrame, render: swapFrame },
+            })
+            frame.dispatchEvent(event)
+            bardo(live, newFrame, () => event.detail.render?.(frame, newFrame))
 
             expect(sawPlayer(onUnmount)).toEqual([false])
             expect(sawPlayer(onMount)).toEqual([false])
+            expect(frame.contains(live)).toBe(true)
         })
 
         describe('snapshot cache', () => {
@@ -785,25 +836,38 @@ describe('TurboHandler', () => {
             })
 
             it('leaves the permanent elements mounted for the cache, and unmounts the ones the new page drops', () => {
-                fire('turbo:load')
+                loadPage()
                 const live = document.getElementById('player') as Element
 
                 fire('turbo:before-cache')
                 expect(sawPlayer(onUnmount)).toEqual([false])
 
-                fire('turbo:before-render', { newBody: body('<p>No player</p>') })
+                driveRender(body('<p>No player</p>'))
                 expect(onUnmount).toHaveBeenLastCalledWith(live)
             })
 
-            it('mounts the body around the permanent elements left mounted for the cache', () => {
-                fire('turbo:load')
+            it('mounts the new body around the permanent elements left mounted for the cache', () => {
+                loadPage()
+                const live = document.getElementById('player') as Element
+                const newBody = body(player)
 
                 fire('turbo:before-cache')
-                fire('turbo:before-render', { newBody: body(player) })
-                fire('turbo:render', {})
+                const event = fire<RenderDetail>('turbo:before-render', { newBody, render: swapBody })
+                bardo(live, newBody, () => event.detail.render?.(document.body, newBody))
                 fire('turbo:load')
 
-                expect(sawPlayer(onMount)).toEqual([true, false])
+                expect(onMount.mock.calls).toEqual([[newBody]])
+                expect(sawPlayer(onMount)).toEqual([false])
+            })
+
+            it('mounts a body unmounted for the cache whole on a morph, its permanent elements set aside', () => {
+                loadPage()
+
+                fire('turbo:before-cache')
+                driveRender(document.body, { renderMethod: 'morph', render: () => {} })
+
+                expect(onMount.mock.calls).toEqual([[document.body]])
+                expect(sawPlayer(onMount)).toEqual([false])
             })
 
             it('puts the snapshot clone back on stop()', () => {
@@ -815,6 +879,7 @@ describe('TurboHandler', () => {
 
         it('puts back a permanent element a stream swapped for a copy, mounted', async () => {
             document.body.innerHTML = `<section id="section">${player}<p>Old</p></section>`
+            loadPage()
             const live = document.getElementById('player') as Element
             const section = document.getElementById('section') as Element
             const newSection = document.createElement('section')
@@ -840,49 +905,29 @@ describe('TurboHandler', () => {
     })
 
     describe('renders racing the first turbo:load', () => {
-        function frameRender(frame: Element): { render: (current: Element, next: Element) => void } {
-            const detail = { render: (_current: Element, _next: Element): void => {} }
-            frame.dispatchEvent(new CustomEvent('turbo:before-frame-render', { bubbles: true, detail }))
+        it('unmounts a frame rendered before the first turbo:load, before mounting the body', () => {
+            const frame = turboFrame()
 
-            return detail
-        }
-
-        it('mounts a frame once when the first turbo:load comes after its content is swapped in', () => {
-            const frame = document.createElement('turbo-frame')
-            document.body.appendChild(frame)
-
-            frameRender(frame).render(frame, frame)
+            frameRender(frame, document.createElement('turbo-frame'))
             fire('turbo:load')
-            frame.dispatchEvent(new CustomEvent('turbo:frame-load', { bubbles: true }))
 
-            expect(onMount.mock.calls).toEqual([[document.body]])
+            expect(onUnmount.mock.calls).toEqual([[frame]])
+            expect(onMount.mock.calls).toEqual([[frame], [document.body]])
         })
 
         it('unmounts the old content of a frame the first turbo:load mounted before the swap', () => {
-            const frame = document.createElement('turbo-frame')
-            document.body.appendChild(frame)
+            const frame = turboFrame()
+            const event = new CustomEvent<RenderDetail>('turbo:before-frame-render', {
+                bubbles: true,
+                detail: { render: swapFrame },
+            })
 
-            const detail = frameRender(frame)
+            frame.dispatchEvent(event)
             fire('turbo:load')
-            onUnmount.mockClear()
-            detail.render(frame, frame)
-            frame.dispatchEvent(new CustomEvent('turbo:frame-load', { bubbles: true }))
+            event.detail.render?.(frame, document.createElement('turbo-frame'))
 
             expect(onUnmount.mock.calls).toEqual([[frame]])
             expect(onMount.mock.calls).toEqual([[document.body], [frame]])
-        })
-
-        it('unmounts a frame loaded before the first turbo:load, before mounting the body', () => {
-            const frame = document.createElement('turbo-frame')
-            document.body.appendChild(frame)
-
-            frameRender(frame).render(frame, frame)
-            frame.dispatchEvent(new CustomEvent('turbo:frame-load', { bubbles: true }))
-            fire('turbo:load')
-
-            // Once before its render, once before the body mount
-            expect(onUnmount.mock.calls).toEqual([[frame], [frame]])
-            expect(onMount.mock.calls).toEqual([[frame], [document.body]])
         })
 
         it('mounts what a stream already in the page inserts, before the handler started', async () => {
@@ -915,6 +960,7 @@ describe('TurboHandler', () => {
             handler.stop()
             handler = new TurboHandler({ onMount, onUnmount, morphMutations: true })
             handler.start()
+            load()
         }
 
         // What Turbo dispatches before it morphs an element (with the new markup) or removes it (without)
@@ -1052,12 +1098,8 @@ describe('TurboHandler', () => {
         describe('a Drive morph render', () => {
             it('skips the coarse body unmount/mount', () => {
                 startMorphHandler()
-                fire('turbo:load') // consume initialLoad
-                onMount.mockClear()
-                onUnmount.mockClear()
 
-                fire('turbo:before-render', { renderMethod: 'morph' })
-                fire('turbo:render', { renderMethod: 'morph' })
+                driveRender(document.createElement('body'), { renderMethod: 'morph', render: () => {} })
                 fire('turbo:load')
 
                 expect(onUnmount).not.toHaveBeenCalled()
@@ -1066,7 +1108,6 @@ describe('TurboHandler', () => {
 
             it('mounts what the render changed and added once it is done, and unmounts what it removed', async () => {
                 startMorphHandler()
-                fire('turbo:load') // consume initialLoad
                 const changed = element('<p>Count 0</p>')
                 const removed = element('<p>Old</p>')
                 const kept = element('<p>Kept</p>')
@@ -1094,7 +1135,6 @@ describe('TurboHandler', () => {
 
             it('mounts a node the morph moved out of a changed element, not one it moved elsewhere', () => {
                 startMorphHandler()
-                fire('turbo:load') // consume initialLoad
                 const changed = element('<div><p id="out">Out</p></div>')
                 const list = element('<ul><li id="a"></li><li id="b"></li></ul>')
                 const out = document.getElementById('out') as Element
@@ -1117,7 +1157,6 @@ describe('TurboHandler', () => {
 
             it('unmounts a node the morph moved into a changed element before mounting that element', () => {
                 startMorphHandler()
-                fire('turbo:load') // consume initialLoad
                 const changed = element('<div></div>')
                 const moving = element('<p id="in">In</p>')
                 onMount.mockClear()
@@ -1138,7 +1177,6 @@ describe('TurboHandler', () => {
 
             it('closes the morph when the render throws', () => {
                 startMorphHandler()
-                fire('turbo:load') // consume initialLoad
                 const changed = element('<p>Count 0</p>')
                 const error = new Error('render failed')
                 onMount.mockClear()
@@ -1158,16 +1196,13 @@ describe('TurboHandler', () => {
 
             it('still re-mounts the whole body on a non-morph (replace) render', () => {
                 startMorphHandler()
-                fire('turbo:load') // consume initialLoad
-                onMount.mockClear()
-                onUnmount.mockClear()
+                const body = document.body
+                const newBody = document.createElement('body')
 
-                fire('turbo:before-render', { renderMethod: 'replace' })
-                fire('turbo:render', { renderMethod: 'replace' })
-                fire('turbo:load')
+                driveRender(newBody)
 
-                expect(onUnmount).toHaveBeenCalledWith(document.body)
-                expect(onMount).toHaveBeenCalledWith(document.body)
+                expect(onUnmount.mock.calls).toEqual([[body]])
+                expect(onMount.mock.calls).toEqual([[newBody]])
             })
         })
 
@@ -1182,16 +1217,11 @@ describe('TurboHandler', () => {
                 delete window.Turbo
             })
 
-            function frameRender(frame: Element, detail: object): void {
-                frame.dispatchEvent(new CustomEvent('turbo:before-frame-render', { bubbles: true, detail }))
-                frame.dispatchEvent(new CustomEvent('turbo:frame-load', { bubbles: true }))
-            }
-
             it('skips the coarse frame unmount/mount when Turbo reports a morph', () => {
                 startMorphHandler()
                 const frame = element('<turbo-frame id="live"></turbo-frame>')
 
-                frameRender(frame, { renderMethod: 'morph' })
+                frameRender(frame, frame.cloneNode() as Element, { renderMethod: 'morph', render: () => {} })
 
                 expect(onUnmount).not.toHaveBeenCalled()
                 expect(onMount).not.toHaveBeenCalled()
@@ -1201,7 +1231,7 @@ describe('TurboHandler', () => {
                 startMorphHandler()
                 const frame = element('<turbo-frame id="live" refresh="morph"></turbo-frame>')
 
-                frameRender(frame, { renderMethod: 'replace', render: () => {} })
+                frameRender(frame, frame.cloneNode() as Element, { render: () => {} })
 
                 expect(onUnmount).not.toHaveBeenCalled()
                 expect(onMount).not.toHaveBeenCalled()
@@ -1211,7 +1241,7 @@ describe('TurboHandler', () => {
                 startMorphHandler()
                 const frame = element('<turbo-frame id="live" refresh="morph"></turbo-frame>')
 
-                frameRender(frame, { renderMethod: 'replace', render: frameRenderer.renderElement })
+                frameRender(frame, frame.cloneNode() as Element, { render: frameRenderer.renderElement })
 
                 expect(onUnmount.mock.calls).toEqual([[frame]])
                 expect(onMount.mock.calls).toEqual([[frame]])
