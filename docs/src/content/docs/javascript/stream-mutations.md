@@ -23,8 +23,25 @@ Only elements are reported, not text nodes, and only the root of each inserted o
 
 ## Morph-aware
 
-A Stream morph (`<turbo-stream method="morph">`) may report the same reused node as both removed and added. The policy
-is **mount-wins**: such a node is only mounted, never unmounted then remounted, and never mounted twice.
+A render may report the same reused node as both removed and added. The policy is **mount-wins**: such a node is only
+mounted, never unmounted then remounted, and never mounted twice.
+
+A stream with `method="morph"` (`replace` or `update`) changes its targets in place, which the child list alone doesn't
+show. Each target is unmounted before the render and mounted after, like a frame; what the morph adds outside the
+targets (a target it replaced) is mounted. With [`morphMutations`](/javascript/morph-mutations/), only the elements the
+morph changes, removes or adds are.
+
+## Permanent elements
+
+A stream whose content has an element with the `id` of a `data-turbo-permanent` element of the page keeps that element:
+Turbo inserts a copy of it and takes the element itself out of the page. The handler puts the element back in place of
+the copy, its widgets still mounted, and leaves it out of the `onUnmount` / `onMount` of the nodes around it.
+
+## Streams in the page
+
+A `<turbo-stream>` in the HTML of the page renders as soon as Turbo is imported, before an app that imports Turbo first
+starts the handler. When the handler starts, it watches the targets of the streams already in the page until they are
+done, and mounts what they inserted.
 
 ## Error isolation
 

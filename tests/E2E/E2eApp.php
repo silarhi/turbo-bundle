@@ -40,6 +40,8 @@ use Symfony\Component\HttpKernel\KernelEvents;
  */
 final class E2eApp
 {
+    private const MORPH = '<meta name="turbo-refresh-method" content="morph">';
+
     public static function kernel(): HttpKernel
     {
         $requestStack = new RequestStack();
@@ -79,12 +81,47 @@ final class E2eApp
             'GET /morph' => self::morph(...),
             'GET /morph-select' => self::morphSelect(...),
             // Back to the same page: Turbo 8 renders it as a refresh, morphed with turbo-refresh-method="morph"
-            'POST /morph', 'POST /morph-select' => static function (Request $request): Response {
+            'POST /morph', 'POST /morph-select', 'POST /morph-list', 'POST /morph-frame', 'POST /permanent/a' => static function (Request $request): Response {
                 $response = new RedirectResponse($request->getRequestUri(), Response::HTTP_SEE_OTHER);
                 $response->headers->setCookie(Cookie::create('count', (string) (self::count($request) + 1)));
 
                 return $response;
             },
+            // A refresh asked by the server: the page refreshes itself, with a morph when its meta asks for one
+            'POST /morph/refresh-stream' => static function (Request $request): Response {
+                $response = self::stream('<turbo-stream action="refresh"></turbo-stream>');
+                $response->headers->setCookie(Cookie::create('count', (string) (self::count($request) + 1)));
+
+                return $response;
+            },
+            'GET /morph-list' => self::morphList(...),
+            'GET /morph-frame' => self::morphFrame(...),
+            'GET /morph-frame/live' => static fn (Request $request): Response => self::page('Live frame', self::liveFrame(self::count($request))),
+            'GET /stream-morph' => static fn (): Response => self::page('Stream morph', <<<'HTML'
+                <form id="morph-replace" method="post" action="/stream-morph/replace"><button>Replace with a morph</button></form>
+                <form id="morph-update" method="post" action="/stream-morph/update"><button>Update with a morph</button></form>
+                <form id="morph-select" method="post" action="/stream-morph/select"><button>Replace the select with a morph</button></form>
+                HTML . self::morphBox('Text 0', 'one')),
+            // The target is the <select> itself, with the markup of its Tom Select right after it
+            'POST /stream-morph/select' => static fn (): Response => self::stream('<turbo-stream action="replace" method="morph" target="morph-choice"><template>' . self::choice('morph-choice', 'two') . '</template></turbo-stream>'),
+            'POST /stream-morph/replace' => static fn (): Response => self::stream('<turbo-stream action="replace" method="morph" target="morph-box"><template>' . self::morphBox('Text 1', 'two') . '</template></turbo-stream>'),
+            'POST /stream-morph/update' => static fn (): Response => self::stream('<turbo-stream action="update" method="morph" target="morph-box"><template>' . self::morphBoxContent('Text 1', 'two') . '</template></turbo-stream>'),
+            'GET /permanent/a', 'GET /permanent/b', 'GET /permanent/c' => self::permanent(...),
+            'POST /permanent/stream' => static fn (): Response => self::stream('<turbo-stream action="replace" target="permanent-section"><template>' . self::permanentSection('Section 1') . '</template></turbo-stream>'),
+            'GET /permanent/frame' => static fn (): Response => self::page('Permanent frame', '<turbo-frame id="permanent-frame">' . self::player() . '<a id="frame-next" href="/permanent/frame/next">Next</a></turbo-frame>'),
+            'GET /permanent/frame/next' => static fn (): Response => self::page('Permanent frame next', '<turbo-frame id="permanent-frame">' . self::player() . '<p id="frame-next-page" data-widget>Next</p></turbo-frame>'),
+            'GET /cache-control/no-cache', 'GET /cache-control/no-preview' => self::cacheControl(...),
+            'GET /frames' => self::frames(...),
+            // A stream in the page itself: Turbo renders it once connected, before the first turbo:load
+            'GET /inline-stream' => static fn (): Response => self::page('Inline stream', <<<'HTML'
+                <ul id="inline-list"></ul>
+                <turbo-stream action="append" target="inline-list"><template><li id="inline-item" data-widget data-decorate>Item</li></template></turbo-stream>
+                HTML),
+            'GET /frames/eager' => static fn (): Response => self::page('Eager frame', '<turbo-frame id="eager"><p id="eager-content" data-widget data-decorate>Eager frame</p>' . self::choice('eager-choice') . '</turbo-frame>'),
+            'GET /frames/lazy' => static fn (): Response => self::page('Lazy frame', <<<'HTML'
+                <turbo-frame id="lazy"><p id="lazy-content" data-widget data-decorate>Lazy frame</p></turbo-frame>
+                HTML),
+            'GET /transition/a', 'GET /transition/b' => self::transition(...),
             'GET /list' => self::list(...),
             'GET /form', 'POST /form' => self::form(...),
             // A frame redirect becomes a visit: TurboFrameListener
@@ -118,6 +155,7 @@ final class E2eApp
                 <a id="frame-advance" href="/frame/next" data-turbo-action="advance">Navigate the frame and the URL</a>
                 <a id="frame-missing" href="/second">Load a page without this frame</a>
                 <a id="frame-streams" href="/frame/streams">Load a frame with streams</a>
+                <a id="frame-top" href="/second" data-turbo-frame="_top">Leave the frame</a>
                 <form id="frame-redirect" method="post" action="/frame/redirect"><button>Redirect</button></form>
             </turbo-frame>
 
@@ -142,7 +180,144 @@ final class E2eApp
             <p id="decorated" data-widget data-decorate>Decorated</p>
             <p id="counter" data-widget data-count="{$count}">Count {$count}</p>
             <form id="increment" method="post" action="{$action}"><button>Increment</button></form>
-            HTML, head: '<meta name="turbo-refresh-method" content="morph">');
+            <form id="refresh-stream" method="post" action="/morph/refresh-stream"><button>Ask for a refresh</button></form>
+            HTML, head: $request->query->has('replace') ? '' : self::MORPH);
+    }
+
+    /**
+     * A morph that removes a box with its widgets, and adds another one
+     */
+    private static function morphList(Request $request): Response
+    {
+        $count = self::count($request);
+        $action = htmlspecialchars($request->getRequestUri());
+        $box = 0 === $count
+            ? '<div id="old-box"><p id="old-text" data-widget>Old</p>' . self::choice('old-choice') . '</div>'
+            : '<div id="new-box"><p id="new-text" data-widget>New</p>' . self::choice('new-choice') . '</div>';
+
+        return self::page('Morph list', <<<HTML
+            <div id="boxes">{$box}</div>
+            <p id="counter" data-count="{$count}">Count {$count}</p>
+            <form id="increment" method="post" action="{$action}"><button>Increment</button></form>
+            HTML, head: self::MORPH);
+    }
+
+    /**
+     * A frame reloaded with a morph when the page refreshes with one: <turbo-frame refresh="morph">
+     */
+    private static function morphFrame(Request $request): Response
+    {
+        $count = self::count($request);
+        $action = htmlspecialchars($request->getRequestUri());
+
+        return self::page('Morph frame', <<<HTML
+            <p id="counter" data-count="{$count}">Count {$count}</p>
+            <form id="increment" method="post" action="{$action}"><button>Increment</button></form>
+            <turbo-frame id="live" src="/morph-frame/live" refresh="morph"></turbo-frame>
+            HTML, head: self::MORPH);
+    }
+
+    private static function liveFrame(int $count): string
+    {
+        return <<<HTML
+            <turbo-frame id="live">
+                <p id="live-stable" data-widget>Stable</p>
+                <p id="live-counter" data-widget data-decorate>Live {$count}</p>
+            HTML . self::choice('live-choice') . '</turbo-frame>';
+    }
+
+    private static function morphBox(string $text, string $selected): string
+    {
+        return '<div id="morph-box">' . self::morphBoxContent($text, $selected) . '</div>';
+    }
+
+    private static function morphBoxContent(string $text, string $selected): string
+    {
+        return sprintf('<p id="morph-text" data-widget data-decorate>%s</p>', $text) . self::choice('morph-choice', $selected) . '<p id="morph-after" data-widget>After</p>';
+    }
+
+    /**
+     * Two pages sharing a [data-turbo-permanent] element, which Turbo moves from one page to the other, and a third
+     * without it. A stream replaces the section around it. With ?morph, a refresh morphs the page.
+     */
+    private static function permanent(Request $request): Response
+    {
+        $name = basename($request->getPathInfo());
+        $section = 'c' === $name ? '' : self::permanentSection('Section 0');
+        $count = self::count($request);
+        $action = htmlspecialchars($request->getRequestUri());
+
+        return self::page('Permanent ' . $name, <<<HTML
+            {$section}
+            <p id="page-{$name}" data-widget>Page {$name}</p>
+            <p id="permanent-count">Count {$count}</p>
+            <a id="to-a" href="/permanent/a">Page a</a>
+            <a id="to-b" href="/permanent/b">Page b</a>
+            <a id="to-c" href="/permanent/c">Page c</a>
+            <form id="permanent-increment" method="post" action="{$action}"><button>Increment</button></form>
+            <form id="permanent-stream" method="post" action="/permanent/stream"><button>Replace the section</button></form>
+            HTML, head: $request->query->has('morph') ? self::MORPH : '');
+    }
+
+    private static function permanentSection(string $text): string
+    {
+        return sprintf('<section id="permanent-section">%s<p id="section-text" data-widget>%s</p></section>', self::player(), $text);
+    }
+
+    private static function player(): string
+    {
+        return '<div id="player" data-turbo-permanent><p id="player-text" data-widget data-decorate>Player</p>' . self::choice('player-choice') . '</div>';
+    }
+
+    /**
+     * A page kept out of the cache (no-cache), or not shown as a preview (no-preview): <meta name="turbo-cache-control">
+     */
+    private static function cacheControl(Request $request): Response
+    {
+        $control = basename($request->getPathInfo());
+
+        return self::page('Cache control', <<<HTML
+            <p id="cached" data-widget data-decorate>{$control}</p>
+            HTML . self::choice('cached-choice') . <<<'HTML'
+            <a id="to-second" href="/second">Second page</a>
+            HTML, head: sprintf('<meta name="turbo-cache-control" content="%s">', $control));
+    }
+
+    /**
+     * An eager frame and a lazy one, below the fold. With ?slow, an image delays the load event of the page
+     */
+    private static function frames(Request $request): Response
+    {
+        $image = $request->query->has('slow') ? '<img src="/slow.png" alt="">' : '';
+
+        return self::page('Frames', <<<HTML
+            {$image}
+            <p id="frames" data-widget>Frames</p>
+            <a id="to-second" href="/second">Second page</a>
+            <turbo-frame id="eager" src="/frames/eager"><p>Loading</p></turbo-frame>
+            <div style="height: 3000px"></div>
+            <turbo-frame id="lazy" src="/frames/lazy" loading="lazy"><p>Loading</p></turbo-frame>
+            HTML);
+    }
+
+    /**
+     * Two pages rendered in a view transition: <meta name="view-transition">
+     */
+    private static function transition(Request $request): Response
+    {
+        $name = basename($request->getPathInfo());
+        $other = 'a' === $name ? 'b' : 'a';
+
+        return self::page('Transition ' . $name, <<<HTML
+            <p id="transition-{$name}" data-widget data-decorate>Page {$name}</p>
+            HTML . self::choice('transition-choice') . <<<HTML
+            <a id="to-{$other}" href="/transition/{$other}">Page {$other}</a>
+            HTML, head: '<meta name="view-transition" content="same-origin">');
+    }
+
+    private static function choice(string $id, string $selected = 'one'): string
+    {
+        return sprintf('<select id="%s" name="choice" data-widget data-tomselect>%s</select>', $id, self::options($selected, ['one' => 'One', 'two' => 'Two']));
     }
 
     /**
@@ -245,12 +420,14 @@ final class E2eApp
     {
         $count = self::count($request);
         $action = htmlspecialchars($request->getRequestUri());
+        // The server changes the value: a morph must not bring back the one of the page
+        $choice = self::choice('choice', 0 === $count % 2 ? 'one' : 'two');
 
         return self::page('Morph select', <<<HTML
-            <div id="panel"><select id="choice" name="choice" data-widget data-tomselect><option value="one">One</option><option value="two">Two</option></select></div>
+            <div id="panel">{$choice}</div>
             <p id="counter" data-widget data-count="{$count}">Count {$count}</p>
             <form id="increment" method="post" action="{$action}"><button>Increment</button></form>
-            HTML, head: '<meta name="turbo-refresh-method" content="morph">');
+            HTML, head: self::MORPH);
     }
 
     /**

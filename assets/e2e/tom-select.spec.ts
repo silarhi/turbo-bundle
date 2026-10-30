@@ -44,17 +44,20 @@ test.describe('a morph refresh', () => {
         await expect(page.locator('#counter')).toHaveText('Count 1')
     }
 
-    test('keeps one working Tom Select', async ({ page }) => {
+    // The server selects "two" after the refresh
+    test('keeps one working Tom Select, with the value of the server', async ({ page }) => {
         await refresh(page, '/morph-select')
 
         expect(await tomSelects(page)).toEqual({ wrappers: 1, live: ['choice'] })
-        await pick(page, 'choice', 'two')
+        await expect(page.locator('#choice')).toHaveValue('two')
+        await pick(page, 'choice', 'one')
     })
 
-    test('keeps one working Tom Select with morphMutations', async ({ page }) => {
+    test('keeps one working Tom Select, with the value of the server, with morphMutations', async ({ page }) => {
         await refresh(page, '/morph-select?morphMutations')
 
         expect(await tomSelects(page)).toEqual({ wrappers: 1, live: ['choice'] })
-        await pick(page, 'choice', 'two')
+        await expect(page.locator('#choice')).toHaveValue('two')
+        await pick(page, 'choice', 'one')
     })
 })

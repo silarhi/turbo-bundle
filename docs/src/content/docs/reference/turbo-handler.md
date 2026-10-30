@@ -13,16 +13,16 @@ The package exports the `TurboHandler` class and the `TurboHandlerOptions` type.
 
 ## Options
 
-| Option                | Type                              | Default             | Purpose                                                                                                                 |
-| --------------------- | --------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `onMount`             | `(container: Element) => void`    | (required)          | Init your listeners on a freshly rendered / inserted element.                                                           |
-| `onUnmount`           | `(container: Element) => void`    | (required)          | Tear them down before the element leaves the DOM.                                                                       |
-| `getContainer`        | `(document: Document) => Element` | `document.body`     | Root element a full Drive render mounts on.                                                                             |
-| `onRedirect`          | `(url: string) => void`           | `Turbo.visit(url)`¹ | Follow a server `Turbo-Location` redirect.                                                                              |
-| `streamMutations`     | `boolean`                         | `true`              | Diff the DOM around each Turbo Stream render and mount/unmount the nodes it touched.                                    |
-| `morphMutations`      | `boolean`                         | `false`             | Handle Drive/Frame **morph** renders per-node via `turbo:morph-element` instead of re-initializing the whole container. |
-| `visitOnFrameMissing` | `boolean`                         | `false`             | Render a frame response with no matching `<turbo-frame>` as a full Drive visit (Turbo 7.2+).                            |
-| `frameStreams`        | `boolean`                         | `false`             | Run the `<turbo-stream>` elements a frame response carries outside any `<turbo-frame>`.                                 |
+| Option                | Type                              | Default             | Purpose                                                                                                     |
+| --------------------- | --------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `onMount`             | `(container: Element) => void`    | (required)          | Init your listeners on a freshly rendered / inserted element.                                               |
+| `onUnmount`           | `(container: Element) => void`    | (required)          | Tear them down before the element leaves the DOM.                                                           |
+| `getContainer`        | `(document: Document) => Element` | `document.body`     | Root element a full Drive render mounts on.                                                                 |
+| `onRedirect`          | `(url: string) => void`           | `Turbo.visit(url)`¹ | Follow a server `Turbo-Location` redirect.                                                                  |
+| `streamMutations`     | `boolean`                         | `true`              | Diff the DOM around each Turbo Stream render and mount/unmount the nodes it touched.                        |
+| `morphMutations`      | `boolean`                         | `false`             | Handle **morph** renders (Drive, frame, stream) per element instead of re-initializing the whole container. |
+| `visitOnFrameMissing` | `boolean`                         | `false`             | Render a frame response with no matching `<turbo-frame>` as a full Drive visit (Turbo 7.2+).                |
+| `frameStreams`        | `boolean`                         | `false`             | Run the `<turbo-stream>` elements a frame response carries outside any `<turbo-frame>`.                     |
 
 ¹ `window.Turbo.visit(url)`; without the `Turbo` global, a full page load with `window.location.assign(url)` and a
 console warning ([Following redirects](/javascript/turbo-handler/#following-redirects)).

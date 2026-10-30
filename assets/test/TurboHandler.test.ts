@@ -594,6 +594,322 @@ describe('TurboHandler', () => {
         })
     })
 
+    describe('stream morphs', () => {
+        function morphStream(action: string, target: Element): Element {
+            const stream = document.createElement('turbo-stream')
+            stream.setAttribute('action', action)
+            stream.setAttribute('method', 'morph')
+            Object.defineProperty(stream, 'targetElements', { value: [target] })
+
+            return stream
+        }
+
+        it('re-mounts the whole target of a stream morph by default', async () => {
+            const target = document.createElement('div')
+            target.innerHTML = '<p>Old</p>'
+            document.body.appendChild(target)
+            const calls: string[] = []
+            onUnmount.mockImplementation((container) => calls.push(`unmount ${container.tagName}`))
+            onMount.mockImplementation((container) => calls.push(`mount ${container.tagName}`))
+
+            const detail = {
+                render: async (_streamElement: Element) => {
+                    calls.push('render')
+                    target.replaceChildren(document.createElement('ul'))
+                },
+            }
+            fire('turbo:before-stream-render', detail)
+            await detail.render(morphStream('update', target))
+
+            expect(calls).toEqual(['unmount DIV', 'render', 'mount DIV'])
+        })
+
+        it('mounts what a stream morph adds outside its target, the target replaced', async () => {
+            const target = document.createElement('div')
+            document.body.appendChild(target)
+            const added = document.createElement('section')
+
+            const detail = {
+                render: async (_streamElement: Element) => {
+                    target.replaceWith(added)
+                },
+            }
+            fire('turbo:before-stream-render', detail)
+            await detail.render(morphStream('replace', target))
+
+            expect(onUnmount.mock.calls).toEqual([[target]])
+            expect(onMount.mock.calls).toEqual([[added]])
+        })
+
+        it('unmounts the target of a replace morph that changes before the render, with morphMutations', async () => {
+            handler.stop()
+            handler = new TurboHandler({ onMount, onUnmount, morphMutations: true })
+            handler.start()
+            const target = document.createElement('p')
+            target.textContent = 'Old'
+            document.body.appendChild(target)
+            const stream = morphStream('replace', target)
+            stream.innerHTML = '<template><p>New</p></template>'
+            const calls: string[] = []
+            onUnmount.mockImplementation(() => calls.push('unmount'))
+            onMount.mockImplementation(() => calls.push('mount'))
+
+            const detail = {
+                render: async (_streamElement: Element) => {
+                    calls.push('render')
+                    target.textContent = 'New'
+                },
+            }
+            fire('turbo:before-stream-render', detail)
+            await detail.render(stream)
+
+            expect(calls).toEqual(['unmount', 'render', 'mount'])
+        })
+
+        it('leaves a stream that replaces without morph to the node diff', async () => {
+            const target = document.createElement('div')
+            document.body.appendChild(target)
+            const added = document.createElement('section')
+            const stream = morphStream('replace', target)
+            stream.removeAttribute('method')
+
+            const detail = {
+                render: async (_streamElement: Element) => {
+                    target.replaceWith(added)
+                },
+            }
+            fire('turbo:before-stream-render', detail)
+            await detail.render(stream)
+
+            expect(onUnmount.mock.calls).toEqual([[target]])
+            expect(onMount.mock.calls).toEqual([[added]])
+        })
+    })
+
+    describe('permanent elements', () => {
+        const player = '<div id="player" data-turbo-permanent><p>Player</p></div>'
+
+        // Whether each call saw the player inside its container, when it was made
+        const seen = new Map<Mock<Lifecycle>, boolean[]>()
+        function sawPlayer(callback: Mock<Lifecycle>): boolean[] {
+            return seen.get(callback) ?? []
+        }
+
+        function body(html: string): Element {
+            const element = document.createElement('body')
+            element.innerHTML = html
+
+            return element
+        }
+
+        beforeEach(() => {
+            for (const callback of [onMount, onUnmount]) {
+                const calls: boolean[] = []
+                seen.set(callback, calls)
+                callback.mockImplementation((container) => {
+                    calls.push(container.querySelector('#player') !== null)
+                })
+            }
+            document.body.innerHTML = `${player}<p id="other">Other</p>`
+        })
+
+        it('leaves the permanent elements the new page has out of the unmount and mount of a Drive render', () => {
+            fire('turbo:load') // consume initialLoad
+            const live = document.getElementById('player')
+
+            fire('turbo:before-render', { newBody: body(player) })
+            expect(sawPlayer(onUnmount)).toEqual([false])
+            expect(document.getElementById('player')).toBe(live)
+
+            fire('turbo:render', {})
+            fire('turbo:load')
+            expect(sawPlayer(onMount)).toEqual([true, false])
+        })
+
+        it('unmounts a permanent element the new page drops with the body', () => {
+            fire('turbo:load') // consume initialLoad
+
+            fire('turbo:before-render', { newBody: body('<p>No player</p>') })
+            expect(sawPlayer(onUnmount)).toEqual([true])
+        })
+
+        it('leaves every permanent element mounted on a morph render', () => {
+            fire('turbo:load') // consume initialLoad
+
+            fire('turbo:before-render', { renderMethod: 'morph', newBody: body('<p>No player</p>') })
+            expect(sawPlayer(onUnmount)).toEqual([false])
+        })
+
+        it('leaves the permanent elements a frame keeps out of its unmount and mount', () => {
+            document.body.innerHTML = `<turbo-frame id="frame">${player}</turbo-frame>`
+            const frame = document.getElementById('frame') as Element
+            const newFrame = document.createElement('turbo-frame')
+            newFrame.innerHTML = player
+
+            frame.dispatchEvent(new CustomEvent('turbo:before-frame-render', { bubbles: true, detail: { newFrame } }))
+            frame.dispatchEvent(new CustomEvent('turbo:frame-load', { bubbles: true }))
+
+            expect(sawPlayer(onUnmount)).toEqual([false])
+            expect(sawPlayer(onMount)).toEqual([false])
+        })
+
+        describe('snapshot cache', () => {
+            class PageSnapshot {
+                constructor(readonly element: Element) {}
+
+                clone(): PageSnapshot {
+                    return new PageSnapshot(this.element.cloneNode(true) as Element)
+                }
+            }
+            const clone = PageSnapshot.prototype.clone
+
+            beforeEach(() => {
+                handler.stop()
+                window.Turbo = { visit: vi.fn(), PageSnapshot }
+                handler = new TurboHandler({ onMount, onUnmount })
+                handler.start()
+            })
+
+            afterEach(() => {
+                handler.stop()
+                delete window.Turbo
+            })
+
+            it('caches the markup a permanent element had before its first mount', () => {
+                fire('turbo:load')
+                document.querySelector('#player p')?.append(document.createElement('span'))
+
+                const snapshot = new PageSnapshot(document.body).clone()
+                expect(snapshot.element.querySelector('#player')?.innerHTML).toBe('<p>Player</p>')
+                expect(snapshot.element.querySelector('#other')).not.toBeNull()
+            })
+
+            it('leaves the permanent elements mounted for the cache, and unmounts the ones the new page drops', () => {
+                fire('turbo:load')
+                const live = document.getElementById('player') as Element
+
+                fire('turbo:before-cache')
+                expect(sawPlayer(onUnmount)).toEqual([false])
+
+                fire('turbo:before-render', { newBody: body('<p>No player</p>') })
+                expect(onUnmount).toHaveBeenLastCalledWith(live)
+            })
+
+            it('mounts the body around the permanent elements left mounted for the cache', () => {
+                fire('turbo:load')
+
+                fire('turbo:before-cache')
+                fire('turbo:before-render', { newBody: body(player) })
+                fire('turbo:render', {})
+                fire('turbo:load')
+
+                expect(sawPlayer(onMount)).toEqual([true, false])
+            })
+
+            it('puts the snapshot clone back on stop()', () => {
+                expect(PageSnapshot.prototype.clone).not.toBe(clone)
+                handler.stop()
+                expect(PageSnapshot.prototype.clone).toBe(clone)
+            })
+        })
+
+        it('puts back a permanent element a stream swapped for a copy, mounted', async () => {
+            document.body.innerHTML = `<section id="section">${player}<p>Old</p></section>`
+            const live = document.getElementById('player') as Element
+            const section = document.getElementById('section') as Element
+            const newSection = document.createElement('section')
+            newSection.innerHTML = `${player}<p>New</p>`
+
+            const detail = {
+                render: async (_streamElement: Element) => {
+                    // What Turbo does: a copy of the element in the new content, the element itself out of the page
+                    live.replaceWith(live.cloneNode(true))
+                    section.replaceWith(newSection)
+                },
+            }
+            fire('turbo:before-stream-render', detail)
+            await detail.render(document.createElement('turbo-stream'))
+
+            expect(document.getElementById('player')).toBe(live)
+            expect(newSection.contains(live)).toBe(true)
+            expect(onUnmount.mock.calls).toEqual([[section]])
+            expect(sawPlayer(onUnmount)).toEqual([false])
+            expect(onMount.mock.calls).toEqual([[newSection]])
+            expect(sawPlayer(onMount)).toEqual([false])
+        })
+    })
+
+    describe('renders racing the first turbo:load', () => {
+        function frameRender(frame: Element): { render: (current: Element, next: Element) => void } {
+            const detail = { render: (_current: Element, _next: Element): void => {} }
+            frame.dispatchEvent(new CustomEvent('turbo:before-frame-render', { bubbles: true, detail }))
+
+            return detail
+        }
+
+        it('mounts a frame once when the first turbo:load comes after its content is swapped in', () => {
+            const frame = document.createElement('turbo-frame')
+            document.body.appendChild(frame)
+
+            frameRender(frame).render(frame, frame)
+            fire('turbo:load')
+            frame.dispatchEvent(new CustomEvent('turbo:frame-load', { bubbles: true }))
+
+            expect(onMount.mock.calls).toEqual([[document.body]])
+        })
+
+        it('unmounts the old content of a frame the first turbo:load mounted before the swap', () => {
+            const frame = document.createElement('turbo-frame')
+            document.body.appendChild(frame)
+
+            const detail = frameRender(frame)
+            fire('turbo:load')
+            onUnmount.mockClear()
+            detail.render(frame, frame)
+            frame.dispatchEvent(new CustomEvent('turbo:frame-load', { bubbles: true }))
+
+            expect(onUnmount.mock.calls).toEqual([[frame]])
+            expect(onMount.mock.calls).toEqual([[document.body], [frame]])
+        })
+
+        it('unmounts a frame loaded before the first turbo:load, before mounting the body', () => {
+            const frame = document.createElement('turbo-frame')
+            document.body.appendChild(frame)
+
+            frameRender(frame).render(frame, frame)
+            frame.dispatchEvent(new CustomEvent('turbo:frame-load', { bubbles: true }))
+            fire('turbo:load')
+
+            // Once before its render, once before the body mount
+            expect(onUnmount.mock.calls).toEqual([[frame], [frame]])
+            expect(onMount.mock.calls).toEqual([[frame], [document.body]])
+        })
+
+        it('mounts what a stream already in the page inserts, before the handler started', async () => {
+            handler.stop()
+            if (!customElements.get('turbo-stream')) {
+                customElements.define(
+                    'turbo-stream',
+                    class extends HTMLElement {
+                        get targetElements(): Element[] {
+                            return [document.getElementById(this.getAttribute('target') ?? '') as Element]
+                        }
+                    }
+                )
+            }
+            document.body.innerHTML = '<ul id="list"></ul><turbo-stream target="list"></turbo-stream>'
+            handler = new TurboHandler({ onMount, onUnmount })
+            handler.start()
+            const item = document.createElement('li')
+
+            document.getElementById('list')?.append(item)
+            document.querySelector('turbo-stream')?.remove()
+            await new Promise((resolve) => setTimeout(resolve))
+
+            expect(onMount.mock.calls).toEqual([[item]])
+        })
+    })
+
     describe('morph mutations (opt-in)', () => {
         function startMorphHandler(): void {
             handler.stop()
@@ -601,8 +917,8 @@ describe('TurboHandler', () => {
             handler.start()
         }
 
-        // What Turbo dispatches around the morph of one element: before (with the new markup), then after
-        function morph(element: Element, newHtml?: string): void {
+        // What Turbo dispatches before it morphs an element (with the new markup) or removes it (without)
+        function beforeMorph(element: Element, newHtml?: string): void {
             const template = document.createElement('template')
             template.innerHTML = newHtml ?? ''
             const newElement = newHtml === undefined ? undefined : template.content.firstElementChild
@@ -610,10 +926,15 @@ describe('TurboHandler', () => {
                 new CustomEvent('turbo:before-morph-element', {
                     bubbles: true,
                     cancelable: true,
-                    detail: { newElement },
+                    detail: { currentElement: element, newElement },
                 })
             )
-            element.dispatchEvent(new CustomEvent('turbo:morph-element', { bubbles: true, detail: { newElement } }))
+        }
+
+        // A morph Turbo runs on its own: what it changed is mounted on the next microtask
+        async function morph(element: Element, newHtml?: string): Promise<void> {
+            beforeMorph(element, newHtml)
+            await Promise.resolve()
         }
 
         function element(html: string): Element {
@@ -622,131 +943,285 @@ describe('TurboHandler', () => {
             return document.body.lastElementChild as Element
         }
 
-        it('re-mounts an element whose attributes the morph changes', () => {
+        it('re-mounts an element whose attributes the morph changes', async () => {
             startMorphHandler()
             const el = element('<p data-count="0">Count</p>')
 
-            morph(el, '<p data-count="1">Count</p>')
+            await morph(el, '<p data-count="1">Count</p>')
             expect(onUnmount).toHaveBeenCalledWith(el)
             expect(onMount).toHaveBeenCalledWith(el)
         })
 
-        it('re-mounts an element the morph adds an attribute to', () => {
+        it('re-mounts an element the morph adds an attribute to', async () => {
             startMorphHandler()
             const el = element('<p>Count</p>')
 
-            morph(el, '<p data-count="1">Count</p>')
+            await morph(el, '<p data-count="1">Count</p>')
             expect(onUnmount).toHaveBeenCalledWith(el)
             expect(onMount).toHaveBeenCalledWith(el)
         })
 
-        it('re-mounts an element whose own text the morph changes', () => {
+        it('re-mounts an element whose own text the morph changes', async () => {
             startMorphHandler()
             const el = element('<p>Count 0</p>')
 
-            morph(el, '<p>Count 1</p>')
+            await morph(el, '<p>Count 1</p>')
             expect(onMount).toHaveBeenCalledWith(el)
         })
 
-        it('re-mounts an element the morph removes a listener addition from', () => {
+        it('re-mounts an element the morph removes a listener addition from', async () => {
             startMorphHandler()
             const el = element('<p>Widget<span class="badge">mounted</span></p>')
 
-            morph(el, '<p>Widget</p>')
+            await morph(el, '<p>Widget</p>')
             expect(onMount).toHaveBeenCalledWith(el)
         })
 
-        it('leaves an element the morph keeps as it is alone', () => {
+        it('leaves an element the morph keeps as it is alone', async () => {
             startMorphHandler()
             const el = element('<p class="a" data-x="1">Stable <b>text</b></p>')
 
-            morph(el, '<p data-x="1" class="a">Stable <b>text</b></p>')
+            await morph(el, '<p data-x="1" class="a">Stable <b>text</b></p>')
             expect(onUnmount).not.toHaveBeenCalled()
             expect(onMount).not.toHaveBeenCalled()
         })
 
-        it('leaves an ancestor alone when only a descendant changes', () => {
+        it('leaves an ancestor alone when only a descendant changes', async () => {
             startMorphHandler()
             const el = element('<div><p>Count 0</p></div>')
 
             // Its child element keeps its tag: the change is the child's, on its own event
-            morph(el, '<div><p>Count 1</p></div>')
+            await morph(el, '<div><p>Count 1</p></div>')
             expect(onMount).not.toHaveBeenCalled()
         })
 
-        it('re-mounts an ancestor whose child elements the morph replaces', () => {
+        it('re-mounts an ancestor whose child elements the morph replaces', async () => {
             startMorphHandler()
             const el = element('<div><p>Old</p></div>')
 
-            morph(el, '<div><ul><li>New</li></ul></div>')
+            await morph(el, '<div><ul><li>New</li></ul></div>')
             expect(onMount).toHaveBeenCalledWith(el)
         })
 
-        it('ignores turbo:morph-element without a turbo:before-morph-element that saw a change', () => {
+        it('unmounts an element the morph removes', async () => {
             startMorphHandler()
             const el = element('<p>Removed</p>')
 
-            // A node Turbo removes: turbo:before-morph-element without a newElement
-            morph(el)
-            el.dispatchEvent(new CustomEvent('turbo:morph-element', { bubbles: true, detail: {} }))
+            await morph(el)
+            expect(onUnmount.mock.calls).toEqual([[el]])
             expect(onMount).not.toHaveBeenCalled()
         })
 
-        it('re-mounts an element once per morph', () => {
+        it('unmounts a changed element before the morph, and mounts it once the morph is done', async () => {
             startMorphHandler()
             const el = element('<p>Count 0</p>')
 
-            morph(el, '<p>Count 1</p>')
-            el.dispatchEvent(new CustomEvent('turbo:morph-element', { bubbles: true, detail: {} }))
-            expect(onMount).toHaveBeenCalledTimes(1)
+            beforeMorph(el, '<p>Count 1</p>')
+            expect(onUnmount).toHaveBeenCalledWith(el)
+            expect(onMount).not.toHaveBeenCalled()
+            el.textContent = 'Count 1'
+            await Promise.resolve()
+
+            expect(onMount.mock.calls).toEqual([[el]])
         })
 
-        it('skips the coarse body unmount/mount on a Drive morph render', () => {
+        it('skips the elements inside one the morph already unmounted', async () => {
             startMorphHandler()
-            fire('turbo:load') // consume initialLoad
-            onMount.mockClear()
+            const el = element('<div><p>Count 0</p></div>')
+            const child = el.firstElementChild as Element
+
+            beforeMorph(el, '<div><p>Count 1</p><p>New</p></div>')
+            beforeMorph(child, '<p>Count 1</p>')
+            await Promise.resolve()
+
+            expect(onUnmount.mock.calls).toEqual([[el]])
+            expect(onMount.mock.calls).toEqual([[el]])
+        })
+
+        it('ignores the morph events on a body already unmounted for the cache', async () => {
+            startMorphHandler()
+            const el = element('<p>Count 0</p>')
+            fire('turbo:before-cache')
             onUnmount.mockClear()
 
-            fire('turbo:before-render', { renderMethod: 'morph' })
-            fire('turbo:render', { renderMethod: 'morph' })
-            fire('turbo:load')
-
+            await morph(el, '<p>Count 1</p>')
             expect(onUnmount).not.toHaveBeenCalled()
             expect(onMount).not.toHaveBeenCalled()
         })
 
-        it('still re-mounts the whole body on a non-morph (replace) render', () => {
-            startMorphHandler()
-            fire('turbo:load') // consume initialLoad
-            onMount.mockClear()
-            onUnmount.mockClear()
+        describe('a Drive morph render', () => {
+            it('skips the coarse body unmount/mount', () => {
+                startMorphHandler()
+                fire('turbo:load') // consume initialLoad
+                onMount.mockClear()
+                onUnmount.mockClear()
 
-            fire('turbo:before-render', { renderMethod: 'replace' })
-            fire('turbo:render', { renderMethod: 'replace' })
-            fire('turbo:load')
+                fire('turbo:before-render', { renderMethod: 'morph' })
+                fire('turbo:render', { renderMethod: 'morph' })
+                fire('turbo:load')
 
-            expect(onUnmount).toHaveBeenCalledWith(document.body)
-            expect(onMount).toHaveBeenCalledWith(document.body)
+                expect(onUnmount).not.toHaveBeenCalled()
+                expect(onMount).not.toHaveBeenCalled()
+            })
+
+            it('mounts what the render changed and added once it is done, and unmounts what it removed', async () => {
+                startMorphHandler()
+                fire('turbo:load') // consume initialLoad
+                const changed = element('<p>Count 0</p>')
+                const removed = element('<p>Old</p>')
+                const kept = element('<p>Kept</p>')
+                onMount.mockClear()
+                const added = document.createElement('section')
+                added.innerHTML = '<p>New</p>'
+
+                const detail = {
+                    renderMethod: 'morph',
+                    render: (_currentElement: Element, _newElement: Element): void => {
+                        beforeMorph(changed, '<p>Count 1</p>')
+                        changed.textContent = 'Count 1'
+                        beforeMorph(kept, '<p>Kept</p>')
+                        beforeMorph(removed)
+                        removed.replaceWith(added)
+                        expect(onMount).not.toHaveBeenCalled()
+                    },
+                }
+                fire('turbo:before-render', detail)
+                detail.render(document.body, document.createElement('body'))
+
+                expect(onUnmount.mock.calls).toEqual([[changed], [removed]])
+                expect(onMount.mock.calls).toEqual([[changed], [added]])
+            })
+
+            it('mounts a node the morph moved out of a changed element, not one it moved elsewhere', () => {
+                startMorphHandler()
+                fire('turbo:load') // consume initialLoad
+                const changed = element('<div><p id="out">Out</p></div>')
+                const list = element('<ul><li id="a"></li><li id="b"></li></ul>')
+                const out = document.getElementById('out') as Element
+                const b = document.getElementById('b') as Element
+                onMount.mockClear()
+
+                const detail = {
+                    renderMethod: 'morph',
+                    render: (): void => {
+                        beforeMorph(changed, '<div></div>')
+                        changed.after(out)
+                        list.prepend(b)
+                    },
+                }
+                fire('turbo:before-render', detail)
+                detail.render()
+
+                expect(onMount.mock.calls).toEqual([[changed], [out]])
+            })
+
+            it('unmounts a node the morph moved into a changed element before mounting that element', () => {
+                startMorphHandler()
+                fire('turbo:load') // consume initialLoad
+                const changed = element('<div></div>')
+                const moving = element('<p id="in">In</p>')
+                onMount.mockClear()
+
+                const detail = {
+                    renderMethod: 'morph',
+                    render: (): void => {
+                        beforeMorph(changed, '<div><p id="in">In</p></div>')
+                        changed.append(moving)
+                    },
+                }
+                fire('turbo:before-render', detail)
+                detail.render()
+
+                expect(onUnmount.mock.calls).toEqual([[changed], [moving]])
+                expect(onMount.mock.calls).toEqual([[changed]])
+            })
+
+            it('closes the morph when the render throws', () => {
+                startMorphHandler()
+                fire('turbo:load') // consume initialLoad
+                const changed = element('<p>Count 0</p>')
+                const error = new Error('render failed')
+                onMount.mockClear()
+
+                const detail = {
+                    renderMethod: 'morph',
+                    render: (): void => {
+                        beforeMorph(changed, '<p>Count 1</p>')
+                        throw error
+                    },
+                }
+                fire('turbo:before-render', detail)
+
+                expect(() => detail.render()).toThrow(error)
+                expect(onMount.mock.calls).toEqual([[changed]])
+            })
+
+            it('still re-mounts the whole body on a non-morph (replace) render', () => {
+                startMorphHandler()
+                fire('turbo:load') // consume initialLoad
+                onMount.mockClear()
+                onUnmount.mockClear()
+
+                fire('turbo:before-render', { renderMethod: 'replace' })
+                fire('turbo:render', { renderMethod: 'replace' })
+                fire('turbo:load')
+
+                expect(onUnmount).toHaveBeenCalledWith(document.body)
+                expect(onMount).toHaveBeenCalledWith(document.body)
+            })
         })
 
-        it('skips the coarse frame unmount/mount on a morph frame render', () => {
-            startMorphHandler()
-            const frame = document.createElement('turbo-frame')
-            document.body.appendChild(frame)
+        describe('a frame morph render', () => {
+            const frameRenderer = { renderElement: (): void => {} }
 
-            frame.dispatchEvent(
-                new CustomEvent('turbo:before-frame-render', { bubbles: true, detail: { renderMethod: 'morph' } })
-            )
-            frame.dispatchEvent(new CustomEvent('turbo:frame-load', { bubbles: true }))
+            beforeEach(() => {
+                window.Turbo = { visit: vi.fn(), FrameRenderer: frameRenderer }
+            })
 
-            expect(onUnmount).not.toHaveBeenCalled()
-            expect(onMount).not.toHaveBeenCalled()
+            afterEach(() => {
+                delete window.Turbo
+            })
+
+            function frameRender(frame: Element, detail: object): void {
+                frame.dispatchEvent(new CustomEvent('turbo:before-frame-render', { bubbles: true, detail }))
+                frame.dispatchEvent(new CustomEvent('turbo:frame-load', { bubbles: true }))
+            }
+
+            it('skips the coarse frame unmount/mount when Turbo reports a morph', () => {
+                startMorphHandler()
+                const frame = element('<turbo-frame id="live"></turbo-frame>')
+
+                frameRender(frame, { renderMethod: 'morph' })
+
+                expect(onUnmount).not.toHaveBeenCalled()
+                expect(onMount).not.toHaveBeenCalled()
+            })
+
+            it('tells a morph Turbo reports as a replace by its render function', () => {
+                startMorphHandler()
+                const frame = element('<turbo-frame id="live" refresh="morph"></turbo-frame>')
+
+                frameRender(frame, { renderMethod: 'replace', render: () => {} })
+
+                expect(onUnmount).not.toHaveBeenCalled()
+                expect(onMount).not.toHaveBeenCalled()
+            })
+
+            it('re-mounts a frame with refresh="morph" that Turbo replaces', () => {
+                startMorphHandler()
+                const frame = element('<turbo-frame id="live" refresh="morph"></turbo-frame>')
+
+                frameRender(frame, { renderMethod: 'replace', render: frameRenderer.renderElement })
+
+                expect(onUnmount.mock.calls).toEqual([[frame]])
+                expect(onMount.mock.calls).toEqual([[frame]])
+            })
         })
 
-        it('ignores turbo:morph-element unless opted in', () => {
+        it('ignores turbo:before-morph-element unless opted in', async () => {
             const el = element('<p data-count="0"></p>')
 
-            morph(el, '<p data-count="1"></p>')
+            await morph(el, '<p data-count="1"></p>')
             expect(onMount).not.toHaveBeenCalled()
             expect(onUnmount).not.toHaveBeenCalled()
         })

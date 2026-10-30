@@ -9,6 +9,7 @@ import { test as base, expect, type Page } from '@playwright/test'
 declare global {
     interface Window {
         e2eLog: string[]
+        e2eHistory: string[]
     }
 
     interface HTMLSelectElement {
@@ -59,6 +60,52 @@ export async function open(page: Page, url: string): Promise<void> {
     await expect.poll(() => mounted(page)).not.toEqual([])
     await reset(page)
 }
+
+/**
+ * Replays every mount and unmount since the page loaded: the widgets mounted again while still mounted, the ones that
+ * left the page without their cleanup, and the ones in the page that aren't mounted. All empty when the lifecycle holds.
+ * A second unmount doesn't count: a Drive visit unmounts the page twice.
+ */
+export interface Lifecycle {
+    doubled: string[]
+    leaked: string[]
+    missing: string[]
+}
+
+export async function lifecycle(page: Page): Promise<Lifecycle> {
+    return page.evaluate(() => {
+        const live = new Set<string>()
+        const doubled: string[] = []
+        for (const entry of window.e2eHistory) {
+            const [action, id] = entry.split(' ')
+            if (action === 'unmount') {
+                live.delete(id)
+            } else if (live.has(id)) {
+                doubled.push(id)
+            } else {
+                live.add(id)
+            }
+        }
+        const inPage = [...document.querySelectorAll('[data-widget]')].map((widget) => widget.id)
+
+        return {
+            doubled,
+            leaked: [...live].filter((id) => !inPage.includes(id)).sort(),
+            missing: inPage.filter((id) => !live.has(id)).sort(),
+        }
+    })
+}
+
+/** Waits for the next turbo:load, after the action that starts the visit */
+export async function nextLoad(page: Page, action: () => Promise<void>): Promise<void> {
+    const loaded = page.evaluate(
+        () => new Promise((resolve) => document.addEventListener('turbo:load', resolve, { once: true }))
+    )
+    await action()
+    await loaded
+}
+
+export const clean: Lifecycle = { doubled: [], leaked: [], missing: [] }
 
 /**
  * The Tom Select markup in the page, and the selects whose instance is alive (its markup in the page): a copy restored
