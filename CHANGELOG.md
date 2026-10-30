@@ -13,7 +13,8 @@ same git tag; since 0.2.1 the npm package version follows that tag.
   `render` hook of `turbo:before-stream-render`: a frame navigation did not unmount the old frame content, and the
   nodes a stream inserted were not mounted.
 - The CI runs end-to-end tests: `TurboHandler` and `TurboFrameListener` against the real Turbo in Chromium, on Turbo
-  7.2 and 8 (`assets/e2e`, `tests/E2E`).
+  7.2 and 8 (`assets/e2e`, `tests/E2E`), with a real Tom Select across `422` forms, a search form targeting a results
+  frame, the snapshot cache and morph refreshes.
 
 ### Fixed
 
