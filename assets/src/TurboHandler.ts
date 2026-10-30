@@ -11,8 +11,12 @@ declare global {
     interface Window {
         Turbo?: {
             visit: (location: string) => void
-            // The visit in flight, read to tell a promoted frame visit (no body render) from a real one
-            session?: { navigator?: { currentVisit?: { state?: string; willRender?: boolean } } }
+            session?: {
+                // The visit in flight, read to tell a promoted frame visit (no body render) from a real one
+                navigator?: { currentVisit?: { state?: string; willRender?: boolean } }
+                // Wrapped to keep a promoted frame visit out of the snapshot cache
+                visit?: SessionVisit
+            }
         }
     }
 }
@@ -77,6 +81,14 @@ export interface TurboHandlerOptions {
      */
     frameStreams?: boolean
 }
+
+interface VisitOptions {
+    willRender?: boolean
+    shouldCacheSnapshot?: boolean
+    [option: string]: unknown
+}
+
+type SessionVisit = (location: unknown, options?: VisitOptions) => unknown
 
 interface BeforeFetchRequestDetail {
     fetchOptions: { headers: Record<string, string> }
@@ -205,6 +217,8 @@ export class TurboHandler {
     // even when the render that follows doesn't (a morph)
     #unmountedForCache = false
     #bindings: Binding[] = []
+    // Turbo's session.visit, and the wrapper that replaced it, put back on stop()
+    #sessionVisit: { original: SessionVisit; wrapper: SessionVisit } | null = null
     // Frames whose in-flight render is a morph — so turbo:frame-load (which
     // carries no renderMethod) knows to skip the coarse mount.
     #morphingFrames = new WeakSet<Element>()
@@ -264,6 +278,8 @@ export class TurboHandler {
         for (const { type, handler } of this.#bindings) {
             document.addEventListener(type, handler)
         }
+
+        this.#wrapSessionVisit()
     }
 
     /** Detach every document listener and reset to a pre-boot state. Idempotent. */
@@ -277,6 +293,7 @@ export class TurboHandler {
         }
 
         this.#bindings = []
+        this.#unwrapSessionVisit()
         this.#started = false
         this.#initialLoad = true
         this.#bodyRendered = false
@@ -286,9 +303,47 @@ export class TurboHandler {
         this.#morphedElements = new WeakSet()
     }
 
+    // A frame navigation promoted to a page visit (`data-turbo-action`) caches a
+    // copy of the page Turbo 8 took when the navigation started, or Turbo 7 when the
+    // visit completes, while the page is still on screen: with what listeners added
+    // to it (a Tom Select's markup), as no turbo:before-cache cleanup can reach it.
+    // Back would restore that copy and mount the widgets a second time. Don't cache
+    // it: Back loads the page from the server instead, as after a Turbo 8 refresh.
+    // Turbo then no longer fires turbo:before-cache on a page that stays on screen
+    // either, which removed its [data-turbo-temporary] elements (hotwired/turbo#1553).
+    #wrapSessionVisit(): void {
+        const session = window.Turbo?.session
+        if (this.#sessionVisit || typeof session?.visit !== 'function') {
+            return
+        }
+
+        const original = session.visit
+        const wrapper = function (this: unknown, location: unknown, options: VisitOptions = {}): unknown {
+            return original.call(
+                this,
+                location,
+                options.willRender === false ? { ...options, shouldCacheSnapshot: false } : options
+            )
+        }
+        session.visit = wrapper
+        this.#sessionVisit = { original, wrapper }
+    }
+
+    // Put Turbo's session.visit back, unless something wrapped it again since
+    #unwrapSessionVisit(): void {
+        const session = window.Turbo?.session
+        if (session && this.#sessionVisit && session.visit === this.#sessionVisit.wrapper) {
+            session.visit = this.#sessionVisit.original
+        }
+        this.#sessionVisit = null
+    }
+
     // A frame with `data-turbo-follow-redirect` opts into server-side redirect
     // following: tell the backend by echoing the intent as a request header.
     #onBeforeFetchRequest = (event: Event): void => {
+        // Turbo loaded after start(): wrap its session before a frame navigation proposes a visit
+        this.#wrapSessionVisit()
+
         const { fetchOptions } = (event as CustomEvent<BeforeFetchRequestDetail>).detail
         const frameId = fetchOptions.headers[FRAME_HEADER]
         if (!frameId) {

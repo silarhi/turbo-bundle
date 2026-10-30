@@ -13,7 +13,8 @@ same git tag; since 0.2.1 the npm package version follows that tag.
   `render` hook of `turbo:before-stream-render`: a frame navigation did not unmount the old frame content, and the
   nodes a stream inserted were not mounted.
 - The CI runs end-to-end tests: `TurboHandler` and `TurboFrameListener` against the real Turbo in Chromium, on Turbo
-  7.2 and 8 (`assets/e2e`, `tests/E2E`).
+  7.2 and 8 (`assets/e2e`, `tests/E2E`), with a real Tom Select across `422` forms, a search form targeting a results
+  frame, the snapshot cache and morph refreshes.
 
 ### Fixed
 
@@ -25,6 +26,13 @@ same git tag; since 0.2.1 the npm package version follows that tag.
   only read the `X-Turbo-Request-Id` header, which Turbo sends since 8.0: it also recognizes the
   `text/vnd.turbo-stream.html` that Turbo 7 and 8 accept on their form submissions. The browser no longer re-sends the
   `DELETE` to the redirect target.
+- Back after a frame navigation promoted to a page visit (`data-turbo-action="advance"`, such as a search form that
+  targets a results frame) no longer restores the widgets of the page twice. Turbo caches a copy of that page taken
+  while it stays on screen (Turbo 8 takes it when the navigation starts), with what listeners added to it, such as a
+  Tom Select's markup, and no `turbo:before-cache` listener can clean it. `TurboHandler` keeps these visits out of the
+  snapshot cache (`shouldCacheSnapshot: false`, by wrapping `Turbo.session.visit`): Back loads that page from the
+  server. Turbo then no longer fires `turbo:before-cache` on a page that stays on screen either, which removed its
+  `[data-turbo-temporary]` elements (hotwired/turbo#1553).
 
 ## [0.8.3] - 2026-10-29
 

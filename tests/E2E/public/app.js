@@ -12,6 +12,9 @@
  * [data-widget] element in window.e2eLog ("mount home", "unmount home"). A [data-decorate] widget also gets a badge, a
  * change to the DOM like a real listener would make: a snapshot cached before its cleanup would restore it twice.
  *
+ * A <select data-tomselect> gets a Tom Select, a third-party widget that hides the <select> and inserts its own markup
+ * next to it: a snapshot, a morph or a frame render that keeps that markup leaves a dead copy beside the new one.
+ *
  * The options of the handler come from the query string of the first page: /?morphMutations&visitOnFrameMissing
  */
 
@@ -27,6 +30,9 @@ function widgets(container) {
 function mount(container) {
     for (const widget of widgets(container)) {
         window.e2eLog.push(`mount ${widget.id}`)
+        if (widget.matches('select[data-tomselect]')) {
+            new window.TomSelect(widget, {})
+        }
         if (widget.hasAttribute('data-decorate')) {
             const badge = document.createElement('span')
             badge.className = 'badge'
@@ -39,6 +45,7 @@ function mount(container) {
 function unmount(container) {
     for (const widget of widgets(container)) {
         window.e2eLog.push(`unmount ${widget.id}`)
+        widget.tomselect?.destroy()
         for (const badge of widget.querySelectorAll(':scope > .badge')) {
             badge.remove()
         }

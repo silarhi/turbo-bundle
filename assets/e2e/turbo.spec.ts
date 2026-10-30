@@ -1,44 +1,10 @@
-import { readFileSync } from 'node:fs'
-import { expect, type Page, test } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
+import { mounted, open, test, turboMajor, unmounted } from './helpers'
 
 /*
  * TurboHandler and TurboFrameListener against the real Turbo of node_modules (the CI runs them on Turbo 7.2 and 8), in
- * the E2E application of tests/E2E: each [data-widget] element logs its mounts and unmounts in window.e2eLog, and a
- * [data-decorate] one gets a .badge while it is mounted.
+ * the E2E application of tests/E2E (see helpers.ts).
  */
-
-declare global {
-    interface Window {
-        e2eLog: string[]
-    }
-}
-
-const turbo: { version: string } = JSON.parse(
-    readFileSync(new URL('../node_modules/@hotwired/turbo/package.json', import.meta.url), 'utf8')
-)
-const turboMajor = Number(turbo.version.split('.')[0])
-
-/** The widgets mounted since the last reset, in order */
-async function mounted(page: Page): Promise<string[]> {
-    const log = await page.evaluate(() => window.e2eLog)
-
-    return log.filter((entry) => entry.startsWith('mount ')).map((entry) => entry.slice('mount '.length))
-}
-
-/** The widgets unmounted since the last reset, each once and sorted: a Drive visit unmounts the page twice */
-async function unmounted(page: Page): Promise<string[]> {
-    const log = await page.evaluate(() => window.e2eLog)
-
-    return [
-        ...new Set(log.filter((entry) => entry.startsWith('unmount ')).map((entry) => entry.slice('unmount '.length))),
-    ].sort()
-}
-
-async function open(page: Page, url: string): Promise<void> {
-    await page.goto(url)
-    await expect.poll(() => mounted(page)).not.toEqual([])
-    await page.evaluate(() => window.e2eLog.splice(0))
-}
 
 test('the first page is mounted once', async ({ page }) => {
     await page.goto('/')

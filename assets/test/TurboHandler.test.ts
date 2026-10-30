@@ -152,6 +152,77 @@ describe('TurboHandler', () => {
         })
     })
 
+    describe('snapshot of promoted frame visits', () => {
+        type Visit = (location: unknown, options?: Record<string, unknown>) => unknown
+
+        function turboSession(): { session: { visit: Visit }; original: Mock<Visit> } {
+            const original = vi.fn<Visit>()
+            const session = { visit: original as Visit }
+            window.Turbo = { visit: vi.fn(), session }
+
+            return { session, original }
+        }
+
+        afterEach(() => {
+            delete window.Turbo
+        })
+
+        it('keeps a visit that renders nothing out of the snapshot cache', () => {
+            const { session, original } = turboSession()
+            handler.stop()
+            handler.start()
+
+            session.visit('/list?q=foo', { action: 'advance', willRender: false })
+            session.visit('/second', { action: 'advance' })
+
+            expect(original.mock.calls).toEqual([
+                ['/list?q=foo', { action: 'advance', willRender: false, shouldCacheSnapshot: false }],
+                ['/second', { action: 'advance' }],
+            ])
+            // Called as a method of the session
+            expect(original.mock.contexts[0]).toBe(session)
+        })
+
+        it('wraps a Turbo loaded after start() before its first fetch', () => {
+            const { session, original } = turboSession()
+            fire('turbo:before-fetch-request', { fetchOptions: { headers: {} } })
+
+            session.visit('/list?q=foo', { willRender: false })
+
+            expect(original).toHaveBeenCalledWith('/list?q=foo', { willRender: false, shouldCacheSnapshot: false })
+        })
+
+        it('wraps the session once', () => {
+            const { session } = turboSession()
+            handler.stop()
+            handler.start()
+            const wrapper = session.visit
+            fire('turbo:before-fetch-request', { fetchOptions: { headers: {} } })
+
+            expect(session.visit).toBe(wrapper)
+        })
+
+        it('puts the session visit back on stop()', () => {
+            const { session, original } = turboSession()
+            handler.stop()
+            handler.start()
+            handler.stop()
+
+            expect(session.visit).toBe(original)
+        })
+
+        it('leaves a visit wrapped again by something else on stop()', () => {
+            const { session } = turboSession()
+            handler.stop()
+            handler.start()
+            const other: Visit = vi.fn()
+            session.visit = other
+            handler.stop()
+
+            expect(session.visit).toBe(other)
+        })
+    })
+
     describe('promoted frame visits (data-turbo-action)', () => {
         function currentVisit(state: string, willRender: boolean): void {
             window.Turbo = { visit: vi.fn(), session: { navigator: { currentVisit: { state, willRender } } } }

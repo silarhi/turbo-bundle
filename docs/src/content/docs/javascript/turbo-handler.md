@@ -40,6 +40,7 @@ _what_.
 | Turbo event                                                                           | Call                                                                                                       |
 | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | First `turbo:load`                                                                    | `onMount(container)`                                                                                       |
+| `turbo:before-cache`                                                                  | `onUnmount(container)`: the page Turbo caches holds the server markup, not what your listeners added       |
 | `turbo:before-render` (Drive visit)                                                   | `onUnmount(container)`                                                                                     |
 | `turbo:render` followed by `turbo:load`                                               | `onMount(container)`                                                                                       |
 | `turbo:load` without a render (a frame navigation with `data-turbo-action="advance"`) | nothing: the body did not change                                                                           |
@@ -57,6 +58,19 @@ _what_.
 - `turbo:frame-missing`, when [`visitOnFrameMissing`](/javascript/frame-missing/) is on,
 - `turbo:frame-render`, when [`frameStreams`](/javascript/frame-streams/) is on.
 
+## The snapshot cache
+
+Turbo caches a copy of the page it leaves, to show it again on Back or as the preview of a visit. The handler unmounts
+the container on `turbo:before-cache`, so that copy holds the markup of the server: a widget that changes the DOM (a
+Tom Select inserting its own markup next to its `<select>`) is mounted once when the page comes back.
+
+A frame navigation promoted to a page visit (`data-turbo-action="advance"` on a link, or on a search form that targets
+a results frame) is the exception. Turbo caches a copy of the page taken while it stays on screen, which no
+`turbo:before-cache` listener can clean: Turbo 8 takes it when the navigation starts. The handler keeps these visits
+out of the cache instead (Turbo's `shouldCacheSnapshot: false`, as for a Turbo 8 page refresh): Back loads that page
+from the server. It wraps `Turbo.session.visit` for that, on `start()`, or on the first request when Turbo loads after
+the handler.
+
 :::caution[Start before the first page load]
 The first mount happens on the first `turbo:load`. Call `start()` when your entry point runs, not after a delay: a
 handler started after that event never mounts the first page.
@@ -65,8 +79,9 @@ handler started after that event never mounts the first page.
 ## Starting and stopping
 
 - `start()` attaches every listener to `document`. Calling it again is a no-op.
-- `stop()` detaches them all and resets the handler to its pre-boot state: after a new `start()`, the next
-  `turbo:load` counts as the first one and mounts the container. Calling it on a stopped handler is a no-op.
+- `stop()` detaches them all, puts `Turbo.session.visit` back ([The snapshot cache](#the-snapshot-cache)), and resets
+  the handler to its pre-boot state: after a new `start()`, the next `turbo:load` counts as the first one and mounts the
+  container. Calling it on a stopped handler is a no-op.
 
 ## The render container
 
