@@ -62,7 +62,10 @@ The two halves solve different problems and only meet on redirect following (the
 - **One lifecycle hook pair**: `onMount` / `onUnmount` run on Drive renders, frame loads and Stream mutations alike
 - **Morph-aware**: Stream renders are diffed per node; Drive, frame and stream morphs can opt into per-element refresh
 - **Frame-redirect following**: a redirect inside a Turbo Frame becomes a full Drive visit, `DELETE` redirects too
+- **`303 See Other`**: other redirects answered to a non-GET Turbo request are followed with a `GET`
 - **`turbo_frame` Twig filter**: extend a lean frame template only when the request targets a matching frame
+- **Request id**: `getTurboRequestId()` / `turbo_request_id()`, so a broadcast `refresh` skips the tab that sent it
+- **Test helpers**: `TurboAssertionsTrait` sends Turbo's headers and asserts Turbo Stream and `Turbo-Location` responses
 - **Framework-optional**: the bundle gives zero-config wiring; the classes also work standalone
 
 ## Requirements

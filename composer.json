@@ -50,6 +50,8 @@
         "symfony/dependency-injection": "<6.4"
     },
     "suggest": {
+        "ext-dom": "Required by TurboAssertionsTrait::assertTurboStream()",
+        "phpunit/phpunit": "Enables Silarhi\\TurboBundle\\Test\\TurboAssertionsTrait in your functional tests",
         "symfony/framework-bundle": "Register Silarhi\\TurboBundle\\SilarhiTurboBundle for zero-config service wiring (optional — TurboManager, TurboFrameListener and TurboExtension work without it, and without symfony/dependency-injection)",
         "twig/twig": "Enables the `turbo_frame` Twig filter (auto-registered by SilarhiTurboBundle when present)"
     },

@@ -41,6 +41,9 @@ use Twig\TwigFunction;
  *     {% extends turbo_frame_request() ? 'base-frame.html.twig' : 'base-modal.html.twig' %}
  *     <turbo-frame id="{{ turbo_frame_id() }}">…</turbo-frame>
  *
+ * `turbo_request_id()` returns the `X-Turbo-Request-Id` of the request, for the
+ * `request-id` of a broadcast `refresh` stream.
+ *
  * Classic AbstractExtension form (not the `#[AsTwigFilter]` attribute) so the
  * bundle keeps working on Symfony 6.4 / 7.0-7.2, where attribute-based Twig
  * extensions are not auto-registered.
@@ -71,6 +74,7 @@ final class TurboExtension extends AbstractExtension
         return [
             new TwigFunction('turbo_frame_request', $this->isTurboFrameRequest(...)),
             new TwigFunction('turbo_frame_id', $this->turboFrameId(...)),
+            new TwigFunction('turbo_request_id', $this->turboRequestId(...)),
         ];
     }
 
@@ -89,6 +93,14 @@ final class TurboExtension extends AbstractExtension
     public function turboFrameId(): ?string
     {
         return $this->turboManager->getTurboFrameId();
+    }
+
+    /**
+     * The `X-Turbo-Request-Id` of the current request, or null (Turbo 7, or no Turbo request).
+     */
+    public function turboRequestId(): ?string
+    {
+        return $this->turboManager->getTurboRequestId();
     }
 
     /**

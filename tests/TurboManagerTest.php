@@ -96,6 +96,16 @@ class TurboManagerTest extends TestCase
         self::assertFalse($this->managerFor($request)->isTurboRequest());
     }
 
+    public function testGetTurboRequestIdReadsTheRequestIdHeader(): void
+    {
+        $request = new Request();
+        $request->headers->set('X-Turbo-Request-Id', 'abc');
+
+        self::assertSame('abc', $this->managerFor($request)->getTurboRequestId());
+        self::assertFalse($request->attributes->has(TurboManager::VARY_ATTRIBUTE));
+        self::assertNull($this->managerFor(new Request())->getTurboRequestId());
+    }
+
     public function testAnswersAsAPlainRequestWithoutACurrentRequest(): void
     {
         $manager = new TurboManager(new RequestStack());
@@ -104,6 +114,7 @@ class TurboManagerTest extends TestCase
         self::assertNull($manager->getTurboFrameId());
         self::assertFalse($manager->followTurboFrameRedirect());
         self::assertFalse($manager->isTurboRequest());
+        self::assertNull($manager->getTurboRequestId());
     }
 
     private function managerFor(Request $request): TurboManager

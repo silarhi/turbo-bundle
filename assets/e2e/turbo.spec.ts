@@ -74,7 +74,8 @@ test('a redirect in a frame with data-turbo-follow-redirect stays in the frame',
     const response = page.waitForResponse((response) => response.url().endsWith('/frame/redirect'))
     await page.click('#follow-redirect button')
 
-    expect((await response).status()).toBe(302)
+    // TurboFrameListener left the redirect to the frame, as a 303 since it answers a POST
+    expect((await response).status()).toBe(303)
     await expect(page.locator('#followed')).toBeVisible()
     await expect.poll(() => mounted(page)).toEqual(['followed'])
     await expect(page).toHaveURL('/')

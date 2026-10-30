@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Silarhi\TurboBundle\EventListener;
 
+use function in_array;
+
 use Silarhi\TurboBundle\TurboManager;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,6 +26,9 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * header, so the browser performs a full Drive visit instead of replacing the
  * frame with the redirect target. Pairs with the JS handler's
  * `turbo:before-fetch-response` interception.
+ *
+ * Any other `301` / `302` answered to a non-GET Turbo request becomes a `303 See
+ * Other`, so the browser follows it with a `GET`.
  *
  * Implements EventSubscriberInterface only, so it can be added to any Symfony
  * event dispatcher (`$dispatcher->addSubscriber(...)`) without the framework.
@@ -49,6 +54,7 @@ final readonly class TurboFrameListener implements EventSubscriberInterface
     public function onKernelResponse(ResponseEvent $event): void
     {
         $this->convertFrameRedirect($event);
+        $this->convertToSeeOther($event);
 
         // A shared cache must not serve the frame layout of a page to a full visit, or the other way round
         if (true === $event->getRequest()->attributes->get(TurboManager::VARY_ATTRIBUTE)) {
@@ -78,6 +84,26 @@ final readonly class TurboFrameListener implements EventSubscriberInterface
         }
 
         $event->setResponse($this->toTurboLocation($response));
+    }
+
+    /**
+     * The browser follows a `301` / `302` answered to a `PATCH`, `PUT` or `DELETE`
+     * fetch with the same method: a `303 See Other` makes it follow with a `GET`,
+     * as after a `POST`. A `307` / `308` keeps the method on purpose and is left alone.
+     */
+    private function convertToSeeOther(ResponseEvent $event): void
+    {
+        $response = $event->getResponse();
+        if (!in_array($response->getStatusCode(), [Response::HTTP_MOVED_PERMANENTLY, Response::HTTP_FOUND], true)
+            || !$response->headers->has('Location')) {
+            return;
+        }
+
+        if ($event->getRequest()->isMethodSafe() || !$this->turboManager->isTurboRequest()) {
+            return;
+        }
+
+        $response->setStatusCode(Response::HTTP_SEE_OTHER);
     }
 
     /**
