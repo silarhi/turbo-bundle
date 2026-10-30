@@ -186,11 +186,25 @@ class TurboExtensionTest extends TestCase
         self::assertTrue($filters[0]->needsEnvironment());
     }
 
-    public function testExposesTheFrameFunctions(): void
+    public function testExposesTheFrameAndRequestIdFunctions(): void
     {
         $functions = $this->extensionFor(new Request())->getFunctions();
 
-        self::assertSame(['turbo_frame_request', 'turbo_frame_id'], array_map(static fn (TwigFunction $function): string => $function->getName(), $functions));
+        self::assertSame(['turbo_frame_request', 'turbo_frame_id', 'turbo_request_id'], array_map(static fn (TwigFunction $function): string => $function->getName(), $functions));
+    }
+
+    public function testRefreshStreamCarriesTheTurboRequestId(): void
+    {
+        $request = new Request();
+        $request->headers->set('X-Turbo-Request-Id', 'abc');
+
+        $environment = new Environment(new ArrayLoader([
+            'refresh.stream.html.twig' => '<turbo-stream action="refresh" request-id="{{ turbo_request_id() }}"></turbo-stream>',
+        ]));
+        $environment->addExtension($this->extensionFor($request));
+
+        self::assertSame('<turbo-stream action="refresh" request-id="abc"></turbo-stream>', $environment->render('refresh.stream.html.twig'));
+        self::assertNull($this->extensionFor(new Request())->turboRequestId());
     }
 
     public function testFrameFunctionsOutsideAnyTurboFrame(): void

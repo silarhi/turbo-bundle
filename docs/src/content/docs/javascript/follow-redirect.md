@@ -19,14 +19,11 @@ Add `data-turbo-follow-redirect` to that `<turbo-frame>`:
 
 On `turbo:before-fetch-request`, the handler reads the `Turbo-Frame` header of the request, finds the frame with that
 `id` in the document, and when it carries the attribute adds a `Turbo-Frame-Follow-Redirect: 1` header.
-`TurboFrameListener` leaves every redirect of such requests untouched, and Turbo follows them inside the frame.
+`TurboFrameListener` leaves every redirect of such requests in the frame, and Turbo follows them there.
 
 - The attribute is read on the frame the request targets: for a link with `data-turbo-frame="wizard"` outside the
   frame, it is the `wizard` frame.
 - It wins over [`follow_delete_redirects`](/php/frame-redirects/#delete-redirects): a `DELETE` redirect from that
-  frame is left untouched too. Answer it with a `303 See Other`, which the browser follows with a `GET`; a `302` is
-  followed with the same `DELETE` method:
-
-    ```php
-    return $this->redirectToRoute('project_index', status: Response::HTTP_SEE_OTHER);
-    ```
+  frame stays in the frame too. Its `301` / `302` becomes a
+  [`303 See Other`](/php/frame-redirects/#303-see-other-for-the-other-redirects), which the browser follows with a
+  `GET`, where a `302` would be followed with the same `DELETE` method.

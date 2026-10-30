@@ -41,20 +41,42 @@ The `204` keeps the headers of the redirect response, cookies and `Cache-Control
 `Location` header (moved to `Turbo-Location`) and the body headers (`Content-Type`, `Content-Length`) change. Flash
 messages live in the session, whose cookie Symfony adds later in `kernel.response`.
 
-Any other response passes through unchanged.
+A `301` / `302` that is not converted gets a [`303 See Other`](#303-see-other-for-the-other-redirects) when it
+answers a non-`GET` Turbo request. Any other response passes through unchanged.
+
+## `303 See Other` for the other redirects
+
+`redirectToRoute()` answers a `302 Found`. The browser follows a `301` or a `302` answered to a `PATCH`, `PUT` or
+`DELETE` fetch with the same method, on the redirect target: Turbo sends these methods for a
+`data-turbo-method="patch"` link, or a `<form method="patch">`. The target then gets a `PATCH`, and usually answers
+`405 Method Not Allowed`. With a `303 See Other`, the browser follows with a `GET`.
+
+So `TurboFrameListener` turns a redirect into a `303`, keeping its `Location` and other headers, when:
+
+1. the response is a `301` or a `302` with a `Location` header, not converted to a `Turbo-Location` visit,
+2. **and** the request method is not safe (anything but `GET`, `HEAD`, `OPTIONS` and `TRACE`),
+3. **and** Turbo sent the request: an `X-Turbo-Request-Id` header (Turbo 8), or an `Accept` header with
+   `text/vnd.turbo-stream.html` (the form submissions of Turbo 7 and 8).
+
+This covers the redirects that frames with `data-turbo-follow-redirect` keep: the frame loads the target with a `GET`.
+A `POST` redirect is followed with a `GET` either way, and gets the `303` too. A `307` or a `308` is left alone: these
+statuses ask the browser to keep the method. So is the redirect of a request Turbo did not send, such as an API
+client's.
 
 ## `DELETE` redirects
 
 A `302` answered to a `DELETE` fetch is followed by the browser with the same `DELETE` method, on the redirect target.
 Converting the redirect into a `Turbo-Location` visit avoids that, for frame and non-frame Turbo requests alike, except
-for frames that [keep their redirects](#keeping-a-redirect-in-its-frame).
+for frames that [keep their redirects](#keeping-a-redirect-in-its-frame), whose redirect gets a
+[`303`](#303-see-other-for-the-other-redirects) instead.
 
 A `DELETE` outside a frame is recognized as a Turbo request by its `X-Turbo-Request-Id` header, which Turbo sends
 since 8.0, or by the `text/vnd.turbo-stream.html` that Turbo 7 and 8 accept on their form submissions (a
 `data-turbo-method="delete"` link included).
 
 Turn it off with the [`follow_delete_redirects`](/reference/configuration/) option, or the `followDeleteRedirects`
-constructor argument [without the framework](/php/without-framework/):
+constructor argument [without the framework](/php/without-framework/). The redirect then gets a
+[`303`](#303-see-other-for-the-other-redirects), which Turbo follows with a `GET`, outside a frame as inside:
 
 ```yaml
 # config/packages/silarhi_turbo.yaml

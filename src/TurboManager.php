@@ -70,6 +70,16 @@ final readonly class TurboManager
             || str_contains((string) $headers->get('accept'), self::STREAM_CONTENT_TYPE);
     }
 
+    /**
+     * The `X-Turbo-Request-Id` Turbo 8 sends with its fetch requests (null on Turbo 7).
+     * Set it as the `request-id` of a broadcast `refresh` stream: the tab that sent
+     * the request already shows the change, and Turbo skips the refresh there.
+     */
+    public function getTurboRequestId(): ?string
+    {
+        return $this->getRequest()?->headers->get('x-turbo-request-id');
+    }
+
     // No current request (console command, message handler, email rendering): not a Turbo request
     private function getRequest(): ?Request
     {

@@ -7,8 +7,22 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 
 ## [0.10.0] - Unreleased
 
+### Added
+
+- `TurboManager::getTurboRequestId()` and the `turbo_request_id()` Twig function return the `X-Turbo-Request-Id` Turbo
+  8 sends with its requests. Set it as the `request-id` of a broadcast `refresh` stream (`TurboStream::refresh()` of
+  `symfony/ux-turbo`): the tab that made the change skips the refresh, instead of reloading the page a second time.
+- `Silarhi\TurboBundle\Test\TurboAssertionsTrait` for functional tests: `getTurboFrameHeaders()` and
+  `getTurboStreamHeaders()` return the headers of Turbo's requests as `$server` parameters, and
+  `assertTurboStreamResponse()`, `assertTurboStream()` and `assertTurboLocation()` check the responses.
+
 ### Changed
 
+- `TurboFrameListener` turns a `301` / `302` answered to a non-GET Turbo request into a `303 See Other`, when it does
+  not convert it to a `Turbo-Location` visit. The browser followed a `302` answered to a `PATCH`, `PUT` or `DELETE`
+  fetch (a `data-turbo-method` link) with the same method, and the redirect target usually answered `405`. This covers
+  frames with `data-turbo-follow-redirect` and `follow_delete_redirects: false`. A `307` / `308`, and the redirects of
+  requests Turbo did not send, are left alone.
 - The end-to-end tests cover every way Turbo morphs (Drive refresh, a refresh asked by a stream, frames with
   `refresh="morph"`, streams with `method="morph"`), with and without `morphMutations`, and `data-turbo-permanent`,
   `turbo-cache-control`, eager and lazy frames, `_top`, prefetch and view transitions.

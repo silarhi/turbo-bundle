@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Silarhi\TurboBundle\Tests\EventListener;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Silarhi\TurboBundle\EventListener\TurboFrameListener;
 use Silarhi\TurboBundle\TurboManager;
@@ -123,6 +124,82 @@ class TurboFrameListenerTest extends TestCase
         $response = $this->dispatch($request, new RedirectResponse('/list'), followDeleteRedirects: false)->getResponse();
         self::assertSame(Response::HTTP_NO_CONTENT, $response->getStatusCode());
         self::assertSame('/list', $response->headers->get('Turbo-Location'));
+    }
+
+    #[DataProvider('seeOtherProvider')]
+    public function testRedirectOfANonGetTurboRequestBecomesSeeOther(string $method, int $status): void
+    {
+        $request = Request::create('/resource', $method);
+        $request->headers->set('X-Turbo-Request-Id', 'abc');
+
+        $response = $this->dispatch($request, new RedirectResponse('/list', $status))->getResponse();
+        self::assertSame(Response::HTTP_SEE_OTHER, $response->getStatusCode());
+        self::assertSame('/list', $response->headers->get('Location'));
+    }
+
+    /**
+     * @return iterable<string, array{string, int}>
+     */
+    public static function seeOtherProvider(): iterable
+    {
+        yield 'PATCH 302' => ['PATCH', Response::HTTP_FOUND];
+        yield 'PUT 302' => ['PUT', Response::HTTP_FOUND];
+        yield 'POST 302' => ['POST', Response::HTTP_FOUND];
+        yield 'PATCH 301' => ['PATCH', Response::HTTP_MOVED_PERMANENTLY];
+    }
+
+    public function testRedirectOfATurbo7SubmissionBecomesSeeOther(): void
+    {
+        $request = Request::create('/resource', 'PATCH');
+        $request->headers->set('Accept', 'text/vnd.turbo-stream.html, text/html, application/xhtml+xml');
+
+        $response = $this->dispatch($request, new RedirectResponse('/list'))->getResponse();
+        self::assertSame(Response::HTTP_SEE_OTHER, $response->getStatusCode());
+    }
+
+    public function testDeleteRedirectBecomesSeeOtherWhenNotConverted(): void
+    {
+        $request = Request::create('/resource', 'DELETE');
+        $request->headers->set('X-Turbo-Request-Id', 'abc');
+
+        $response = $this->dispatch($request, new RedirectResponse('/list'), followDeleteRedirects: false)->getResponse();
+        self::assertSame(Response::HTTP_SEE_OTHER, $response->getStatusCode());
+        self::assertSame('/list', $response->headers->get('Location'));
+    }
+
+    public function testRedirectOfAFrameThatFollowsRedirectsBecomesSeeOther(): void
+    {
+        // The frame keeps the redirect, but loads its target with a GET
+        $request = Request::create('/resource', 'PATCH');
+        $request->headers->set('X-Turbo-Request-Id', 'abc');
+        $request->headers->set('Turbo-Frame', 'my_frame');
+        $request->headers->set('Turbo-Frame-Follow-Redirect', '1');
+
+        $response = $this->dispatch($request, new RedirectResponse('/list'))->getResponse();
+        self::assertSame(Response::HTTP_SEE_OTHER, $response->getStatusCode());
+    }
+
+    #[DataProvider('keptRedirectProvider')]
+    public function testRedirectKeepsItsStatus(string $method, int $status, bool $turbo): void
+    {
+        $request = Request::create('/resource', $method);
+        if ($turbo) {
+            $request->headers->set('X-Turbo-Request-Id', 'abc');
+        }
+
+        $response = $this->dispatch($request, new RedirectResponse('/list', $status))->getResponse();
+        self::assertSame($status, $response->getStatusCode());
+    }
+
+    /**
+     * @return iterable<string, array{string, int, bool}>
+     */
+    public static function keptRedirectProvider(): iterable
+    {
+        yield 'GET from Turbo' => ['GET', Response::HTTP_FOUND, true];
+        yield 'PATCH without Turbo' => ['PATCH', Response::HTTP_FOUND, false];
+        yield 'PATCH 307 from Turbo' => ['PATCH', Response::HTTP_TEMPORARY_REDIRECT, true];
+        yield 'PATCH 308 from Turbo' => ['PATCH', Response::HTTP_PERMANENTLY_REDIRECT, true];
     }
 
     public function testNotModifiedResponseIsLeftUntouched(): void
