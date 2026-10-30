@@ -5,7 +5,7 @@ All notable changes to `silarhi/turbo-bundle` (Composer) and `@silarhi/turbo` (n
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Both packages are released from the
 same git tag; since 0.2.1 the npm package version follows that tag.
 
-## [0.9.0] - Unreleased
+## [0.9.0] - 2026-10-30
 
 ### Changed
 
