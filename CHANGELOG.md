@@ -12,6 +12,11 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 - The end-to-end tests cover every way Turbo morphs (Drive refresh, a refresh asked by a stream, frames with
   `refresh="morph"`, streams with `method="morph"`), with and without `morphMutations`, and `data-turbo-permanent`,
   `turbo-cache-control`, eager and lazy frames, `_top`, prefetch and view transitions.
+- `TurboHandler` mounts and unmounts at the swap itself: it wraps the `render` function of `turbo:before-render` and
+  `turbo:before-frame-render`, so `onMount` now runs before `turbo:render`, `turbo:frame-render` and `turbo:frame-load`
+  instead of on `turbo:load` / `turbo:frame-load`. It keeps the elements it mounted rather than tracking the order of
+  Turbo's events, which every race fixed below came from; only the first page is mounted on `turbo:load`. The handler
+  is split into modules, and its streams, morphs and the streams of the page share one DOM diff.
 
 ### Fixed
 
