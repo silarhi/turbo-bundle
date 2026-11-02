@@ -93,6 +93,8 @@ content|turbo_stream(action, target = null, targets = null, attributes = {})
 ```
 
 - `target` is an element id, `targets` a CSS selector: pass one of them, not both.
+- Named arguments (`targets: '…'`) need Twig 3.12 or later. On an older Twig, pass the arguments in order:
+  `''|turbo_stream('remove', null, '.notification')`.
 - `attributes` adds attributes to the stream (`method`, `request-id`, `data-*`…). `true` renders the name alone,
   `false` and `null` leave it out; `action`, `target` and `targets` come from the arguments.
 - An empty content gets no `<template>`, as `remove`, `refresh` and actions without content expect.
