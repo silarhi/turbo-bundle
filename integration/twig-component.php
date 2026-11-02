@@ -53,11 +53,11 @@ $twig = $kernel->getContainer()->get('test.service_container')->get('twig');
 \assert($twig instanceof Environment);
 
 $cases = [
-    ['<twig:SilarhiTurbo:Stream action="remove" target="project_1" />', '<turbo-stream action="remove" target="project_1"></turbo-stream>'],
-    ['<twig:SilarhiTurbo:Stream action="replace" target="project_1"><p>{{ name }}</p></twig:SilarhiTurbo:Stream>', '<turbo-stream action="replace" target="project_1"><template><p>Café &lt;b&gt;</p></template></turbo-stream>'],
-    ['<twig:SilarhiTurbo:Stream action="modalClose" target="modal" data-reason="{{ name }}" />', '<turbo-stream action="modalClose" target="modal" data-reason="Café &lt;b&gt;"></turbo-stream>'],
-    ['<twig:SilarhiTurbo:Stream action="remove" targets=".notification" />', '<turbo-stream action="remove" targets=".notification"></turbo-stream>'],
-    ['<twig:SilarhiTurbo:Stream action="refresh" request-id="abc" />', '<turbo-stream action="refresh" request-id="abc"></turbo-stream>'],
+    ['<twig:Turbo:Stream action="remove" target="project_1" />', '<turbo-stream action="remove" target="project_1"></turbo-stream>'],
+    ['<twig:Turbo:Stream action="replace" target="project_1"><p>{{ name }}</p></twig:Turbo:Stream>', '<turbo-stream action="replace" target="project_1"><template><p>Café &lt;b&gt;</p></template></turbo-stream>'],
+    ['<twig:Turbo:Stream action="modalClose" target="modal" data-reason="{{ name }}" />', '<turbo-stream action="modalClose" target="modal" data-reason="Café &lt;b&gt;"></turbo-stream>'],
+    ['<twig:Turbo:Stream action="remove" targets=".notification" />', '<turbo-stream action="remove" targets=".notification"></turbo-stream>'],
+    ['<twig:Turbo:Stream action="refresh" request-id="abc" />', '<turbo-stream action="refresh" request-id="abc"></turbo-stream>'],
 ];
 
 try {
@@ -68,7 +68,7 @@ try {
         }
     }
     try {
-        $twig->createTemplate('<twig:SilarhiTurbo:Stream action="remove" target="one" targets=".many" />')->render();
+        $twig->createTemplate('<twig:Turbo:Stream action="remove" target="one" targets=".many" />')->render();
         throw new RuntimeException('Expected mutually exclusive targets to be rejected.');
     } catch (Twig\Error\RuntimeError $error) {
         if (!$error->getPrevious() instanceof InvalidArgumentException) {

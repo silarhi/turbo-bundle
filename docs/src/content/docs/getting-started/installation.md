@@ -30,7 +30,7 @@ events the handler relies on to unmount a frame and to mount what a stream inser
 | --------------------------- | --------------------------------------------------------------- |
 | `symfony/framework-bundle`  | Registering `SilarhiTurboBundle` for zero-config service wiring |
 | `twig/twig`                 | The Twig filters, functions and Turbo Stream renderer           |
-| `symfony/ux-twig-component` | The optional `SilarhiTurbo:Stream` component (2.20+ or 3.x)     |
+| `symfony/ux-twig-component` | The optional `Turbo:Stream` component (2.20+ or 3.x)            |
 
 `symfony/config` and `symfony/dependency-injection` are not installed with the package: only `SilarhiTurboBundle`
 uses them, and a Symfony application already has them through `symfony/framework-bundle`.

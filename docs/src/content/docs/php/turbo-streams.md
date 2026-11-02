@@ -126,7 +126,7 @@ The filter and function both work with Twig 3.0 and share the same rules for tar
 ### Optional Twig component
 
 If you use [Symfony UX Twig Component](https://symfony.com/bundles/ux-twig-component) 2.20 or later,
-including 3.x, the bundle also provides `<twig:SilarhiTurbo:Stream>`. Install and enable the Twig Component
+including 3.x, the bundle also provides `<twig:Turbo:Stream>`. Install and enable the Twig Component
 bundle and register `SilarhiTurboBundle`; the component is discovered automatically. This dependency is optional:
 
 ```shell
@@ -134,13 +134,13 @@ composer require symfony/ux-twig-component
 ```
 
 ```twig
-<twig:SilarhiTurbo:Stream action="replace" target="project_1">
+<twig:Turbo:Stream action="replace" target="project_1">
     <p>{{ project.name }}</p>
-</twig:SilarhiTurbo:Stream>
+</twig:Turbo:Stream>
 
-<twig:SilarhiTurbo:Stream action="remove" targets=".notification" />
-<twig:SilarhiTurbo:Stream action="modalClose" target="app-modal" data-reason="saved" />
-<twig:SilarhiTurbo:Stream action="refresh" request-id="{{ turbo_request_id() }}" />
+<twig:Turbo:Stream action="remove" targets=".notification" />
+<twig:Turbo:Stream action="modalClose" target="app-modal" data-reason="saved" />
+<twig:Turbo:Stream action="refresh" request-id="{{ turbo_request_id() }}" />
 ```
 
 The component accepts `action`, `target` and `targets` as props. Other attributes are forwarded to the
