@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Silarhi\TurboBundle\Tests\Twig;
 
+use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Silarhi\TurboBundle\TurboManager;
@@ -176,13 +177,11 @@ class TurboExtensionTest extends TestCase
         self::assertSame('full:content', $environment->render('page.html.twig'));
     }
 
-    public function testExposesTheTurboFrameFilter(): void
+    public function testExposesTheFrameAndStreamFilters(): void
     {
         $filters = $this->extensionFor(new Request())->getFilters();
 
-        self::assertCount(1, $filters);
-        self::assertInstanceOf(TwigFilter::class, $filters[0]);
-        self::assertSame('turbo_frame', $filters[0]->getName());
+        self::assertSame(['turbo_frame', 'turbo_stream'], array_map(static fn (TwigFilter $filter): string => $filter->getName(), $filters));
         self::assertTrue($filters[0]->needsEnvironment());
     }
 
@@ -205,6 +204,50 @@ class TurboExtensionTest extends TestCase
 
         self::assertSame('<turbo-stream action="refresh" request-id="abc"></turbo-stream>', $environment->render('refresh.stream.html.twig'));
         self::assertNull($this->extensionFor(new Request())->turboRequestId());
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function streamProvider(): iterable
+    {
+        yield 'content of an apply block' => [
+            "{% apply turbo_stream('replace', 'project_1') %}<p>{{ name }}</p>{% endapply %}",
+            '<turbo-stream action="replace" target="project_1"><template><p>Café &lt;b&gt;</p></template></turbo-stream>',
+        ];
+        yield 'escaped string content' => [
+            "{{ name|turbo_stream('append', 'notes') }}",
+            '<turbo-stream action="append" target="notes"><template>Café &lt;b&gt;</template></turbo-stream>',
+        ];
+        yield 'no template without content' => [
+            "{{ ''|turbo_stream('remove', targets: '.notification') }}",
+            '<turbo-stream action="remove" targets=".notification"></turbo-stream>',
+        ];
+        yield 'custom action with attributes' => [
+            "{{ ''|turbo_stream('modalClose', 'app-modal', attributes: {'data-reason': name, 'data-flag': true, 'data-off': false, 'action': 'ignored'}) }}",
+            '<turbo-stream action="modalClose" target="app-modal" data-reason="Café &lt;b&gt;" data-flag></turbo-stream>',
+        ];
+        yield 'refresh without target' => [
+            "{{ ''|turbo_stream('refresh', attributes: {'request-id': 'abc'}) }}",
+            '<turbo-stream action="refresh" request-id="abc"></turbo-stream>',
+        ];
+    }
+
+    #[DataProvider('streamProvider')]
+    public function testStreamFilterWrapsTheContentInATurboStream(string $template, string $expected): void
+    {
+        $environment = new Environment(new ArrayLoader(['stream.html.twig' => $template]));
+        $environment->addExtension($this->extensionFor(new Request()));
+
+        self::assertSame($expected, $environment->render('stream.html.twig', ['name' => 'Café <b>']));
+    }
+
+    public function testStreamFilterRefusesATargetAndTargets(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The "remove" Turbo Stream takes a target or targets, not both.');
+
+        $this->extensionFor(new Request())->turboStream('', 'remove', 'project_1', '.project');
     }
 
     public function testFrameFunctionsOutsideAnyTurboFrame(): void
