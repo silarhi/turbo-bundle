@@ -220,15 +220,15 @@ class TurboExtensionTest extends TestCase
             '<turbo-stream action="append" target="notes"><template>Café &lt;b&gt;</template></turbo-stream>',
         ];
         yield 'no template without content' => [
-            "{{ ''|turbo_stream('remove', targets: '.notification') }}",
+            "{{ ''|turbo_stream('remove', targets = '.notification') }}",
             '<turbo-stream action="remove" targets=".notification"></turbo-stream>',
         ];
         yield 'custom action with attributes' => [
-            "{{ ''|turbo_stream('modalClose', 'app-modal', attributes: {'data-reason': name, 'data-flag': true, 'data-off': false, 'action': 'ignored'}) }}",
+            "{{ ''|turbo_stream('modalClose', 'app-modal', attributes = {'data-reason': name, 'data-flag': true, 'data-off': false, 'action': 'ignored'}) }}",
             '<turbo-stream action="modalClose" target="app-modal" data-reason="Café &lt;b&gt;" data-flag></turbo-stream>',
         ];
         yield 'refresh without target' => [
-            "{{ ''|turbo_stream('refresh', attributes: {'request-id': 'abc'}) }}",
+            "{{ ''|turbo_stream('refresh', attributes = {'request-id': 'abc'}) }}",
             '<turbo-stream action="refresh" request-id="abc"></turbo-stream>',
         ];
     }

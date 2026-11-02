@@ -83,9 +83,9 @@ The `turbo_stream` filter wraps its content in a `<turbo-stream>` of any action,
     <div class="alert alert-success">{{ 'label.project_saved'|trans }}</div>
 {% endapply %}
 
-{{ ''|turbo_stream('remove', targets: '.notification') }}
+{{ ''|turbo_stream('remove', targets = '.notification') }}
 {{ ''|turbo_stream('modalClose', 'app-modal') }}
-{{ ''|turbo_stream('refresh', attributes: {'request-id': turbo_request_id()}) }}
+{{ ''|turbo_stream('refresh', attributes = {'request-id': turbo_request_id()}) }}
 ```
 
 ```twig
@@ -93,8 +93,7 @@ content|turbo_stream(action, target = null, targets = null, attributes = {})
 ```
 
 - `target` is an element id, `targets` a CSS selector: pass one of them, not both.
-- Named arguments (`targets: '…'`) need Twig 3.12 or later. On an older Twig, pass the arguments in order:
-  `''|turbo_stream('remove', null, '.notification')`.
+- Named arguments use `=` for compatibility with Twig 3.0, for example `targets = '.notification'`.
 - `attributes` adds attributes to the stream (`method`, `request-id`, `data-*`…). `true` renders the name alone,
   `false` and `null` leave it out; `action`, `target` and `targets` come from the arguments.
 - An empty content gets no `<template>`, as `remove`, `refresh` and actions without content expect.
