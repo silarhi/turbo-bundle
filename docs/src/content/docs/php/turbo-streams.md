@@ -99,6 +99,55 @@ content|turbo_stream(action, target = null, targets = null, attributes = {})
 - An empty content gets no `<template>`, as `remove`, `refresh` and actions without content expect.
 - The content of an `{% apply %}` block is already escaped. A plain string is escaped like any Twig output.
 
+### The `turbo_stream` function
+
+The function is convenient for actions without content, and also accepts content as its third argument:
+
+```twig
+{{ turbo_stream('remove', 'project_1') }}
+{{ turbo_stream('remove', targets = '.notification') }}
+{{ turbo_stream('append', 'notes', message) }}
+{{ turbo_stream('refresh', attributes = {'request-id': turbo_request_id()}) }}
+```
+
+```twig
+turbo_stream(action, target = null, content = '', targets = null, attributes = {})
+```
+
+Plain content is escaped. To pass rendered HTML, capture it with `{% set %}` (or use the filter's `{% apply %}` form):
+
+```twig
+{% set content %}<p>{{ project.name }}</p>{% endset %}
+{{ turbo_stream('replace', 'project_1', content) }}
+```
+
+The filter and function both work with Twig 3.0 and share the same rules for targets, attributes and empty content.
+
+### Optional Twig component
+
+If you use [Symfony UX Twig Component](https://symfony.com/bundles/ux-twig-component) 2.20 or later,
+including 3.x, the bundle also provides `<twig:SilarhiTurbo:Stream>`. Install and enable the Twig Component
+bundle and register `SilarhiTurboBundle`; the component is discovered automatically. This dependency is optional:
+
+```shell
+composer require symfony/ux-twig-component
+```
+
+```twig
+<twig:SilarhiTurbo:Stream action="replace" target="project_1">
+    <p>{{ project.name }}</p>
+</twig:SilarhiTurbo:Stream>
+
+<twig:SilarhiTurbo:Stream action="remove" targets=".notification" />
+<twig:SilarhiTurbo:Stream action="modalClose" target="app-modal" data-reason="saved" />
+<twig:SilarhiTurbo:Stream action="refresh" request-id="{{ turbo_request_id() }}" />
+```
+
+The component accepts `action`, `target` and `targets` as props. Other attributes are forwarded to the
+`<turbo-stream>` element. Its body becomes the `<template>` content; an empty body produces no `<template>`.
+It uses the same renderer and target validation as the function and filter. Twig Component has its own Twig
+version requirements; installing it does not change the minimum supported by the standalone helpers.
+
 ```js
 import { StreamActions } from '@hotwired/turbo'
 

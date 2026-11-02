@@ -21,6 +21,7 @@ use function sprintf;
 use Stringable;
 use Twig\Environment;
 use Twig\Extension\AbstractExtension;
+use Twig\Markup;
 use Twig\TwigFilter;
 use Twig\TwigFunction;
 
@@ -55,6 +56,10 @@ use Twig\TwigFunction;
  *     {% apply turbo_stream('append', 'flash-alerts') %}…{% endapply %}
  *     {{ ''|turbo_stream('modalClose', 'app-modal') }}
  *
+ * The `turbo_stream` function takes the action first, with optional target and
+ * content: `{{ turbo_stream('remove', 'project_1') }}`. Plain content is escaped;
+ * content captured with Twig's `set` tag retains its rendered HTML.
+ *
  * Classic AbstractExtension form (not the `#[AsTwigFilter]` attribute) so the
  * bundle keeps working on Symfony 6.4 / 7.0-7.2, where attribute-based Twig
  * extensions are not auto-registered.
@@ -87,6 +92,7 @@ final class TurboExtension extends AbstractExtension
             new TwigFunction('turbo_frame_request', $this->isTurboFrameRequest(...)),
             new TwigFunction('turbo_frame_id', $this->turboFrameId(...)),
             new TwigFunction('turbo_request_id', $this->turboRequestId(...)),
+            new TwigFunction('turbo_stream', $this->renderTurboStream(...), ['needs_environment' => true, 'is_safe' => ['html']]),
         ];
     }
 
@@ -135,6 +141,20 @@ final class TurboExtension extends AbstractExtension
         }
 
         return $baseTemplate ?? $this->baseTemplate;
+    }
+
+    /**
+     * Function counterpart of the filter: escape plain content, preserve captured Twig markup.
+     *
+     * @param array<string, string|int|float|bool|null> $attributes
+     */
+    public function renderTurboStream(Environment $environment, string $action, ?string $target = null, string|Stringable $content = '', ?string $targets = null, array $attributes = []): string
+    {
+        if (!$content instanceof Markup) {
+            $content = htmlspecialchars((string) $content, \ENT_QUOTES | \ENT_SUBSTITUTE, $environment->getCharset());
+        }
+
+        return $this->turboStream($content, $action, $target, $targets, $attributes);
     }
 
     /**
