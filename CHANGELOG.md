@@ -9,6 +9,10 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 
 ### Added
 
+- Turbo Stream answers without `symfony/ux-turbo`: `TurboManager::acceptsTurboStream()` tells whether the request takes
+  a stream (a Turbo form submission, a `data-turbo-stream` link), `TurboStreamRenderer::render()` renders a template or
+  one of its blocks with the stream content type, and the `turbo_stream` Twig filter wraps its content in a
+  `<turbo-stream>` of any action, the custom ones that `<twig:Turbo:Stream:*>` doesn't cover included.
 - `TurboManager::getTurboRequestId()` and the `turbo_request_id()` Twig function return the `X-Turbo-Request-Id` Turbo
   8 sends with its requests. Set it as the `request-id` of a broadcast `refresh` stream (`TurboStream::refresh()` of
   `symfony/ux-turbo`): the tab that made the change skips the refresh, instead of reloading the page a second time.
