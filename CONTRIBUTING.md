@@ -81,6 +81,10 @@ Both packages are released from the same git tag. Publishing a GitHub Release pu
 the version taken from the tag: never bump `assets/package.json` by hand. Release notes go to
 [CHANGELOG.md](CHANGELOG.md).
 
+`assets/dist` is committed, because a Symfony Flex application imports it from `vendor/`. Rebuild it in the release
+commit only (`pnpm build` in `assets/`), not in each pull request: the publish workflow refuses a tag whose `dist` is
+stale.
+
 ## Documentation
 
 The documentation site, [turbo-bundle.silarhi.dev](https://turbo-bundle.silarhi.dev), is built from the

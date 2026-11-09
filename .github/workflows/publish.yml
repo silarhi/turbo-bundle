@@ -89,6 +89,15 @@ jobs:
             - name: Build
               run: pnpm build
 
+            # Composer installs the dist/ committed in the tag: it must be what npm gets.
+            - name: Verify the committed dist is up to date
+              run: |
+                  if [ -n "$(git status --porcelain -- dist)" ]; then
+                      git status --porcelain -- dist
+                      echo "::error::assets/dist is stale: run pnpm build in the release commit."
+                      exit 1
+                  fi
+
             - name: Pack
               run: pnpm pack --out "$RUNNER_TEMP/package.tgz"
 

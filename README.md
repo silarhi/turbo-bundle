@@ -80,6 +80,8 @@ composer require silarhi/turbo-bundle # PHP half
 pnpm add @silarhi/turbo               # JS half
 ```
 
+With Symfony Flex, skip the `pnpm add`: Flex links the JS half from `vendor/`, to import from `@silarhi/turbo-bundle`.
+
 ```php
 // config/bundles.php
 return [

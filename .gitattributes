@@ -19,3 +19,4 @@
 /assets/test export-ignore
 /assets/vitest.config.ts export-ignore
 /assets/pnpm-lock.yaml export-ignore
+/assets/dist/** linguist-generated
