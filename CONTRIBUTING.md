@@ -81,9 +81,11 @@ Both packages are released from the same git tag. Publishing a GitHub Release pu
 the version taken from the tag: never bump `assets/package.json` by hand. Release notes go to
 [CHANGELOG.md](CHANGELOG.md).
 
-`assets/dist` is committed, because a Symfony Flex application imports it from `vendor/`. Rebuild it in the release
-commit only (`pnpm build` in `assets/`), not in each pull request: the publish workflow refuses a tag whose `dist` is
-stale.
+`assets/dist` is committed, because a Symfony Flex application imports it from `vendor/`. The pre-commit hook rebuilds
+and stages it, from the staged content, when a commit touches `assets/src`, `assets/package.json`, its lockfile,
+`tsconfig.json` or `tsdown.config.ts`. The hook is installed by `pnpm install` at the root, and refuses such a commit
+until `pnpm install` has run in `assets/` too. CI and the publish workflow fail on a stale `dist`. Renovate commits skip
+the hook and that CI check: if a bundler bump changes the output, run `pnpm build` in `assets/` and commit it.
 
 ## Documentation
 

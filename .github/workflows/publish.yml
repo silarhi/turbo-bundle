@@ -94,7 +94,7 @@ jobs:
               run: |
                   if [ -n "$(git status --porcelain -- dist)" ]; then
                       git status --porcelain -- dist
-                      echo "::error::assets/dist is stale: run pnpm build in the release commit."
+                      echo "::error::assets/dist is stale: run pnpm build in assets/ and commit the result before tagging."
                       exit 1
                   fi
 
