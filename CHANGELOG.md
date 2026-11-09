@@ -22,6 +22,8 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 
 ### Changed
 
+- Twig 3.8 is now the minimum version when Twig is installed (`conflict` with `twig/twig` <3.8), the lowest one
+  `symfony/ux-twig-component` 2.20 allows.
 - `TurboFrameListener` turns a `301` / `302` answered to a non-GET Turbo request into a `303 See Other`, when it does
   not convert it to a `Turbo-Location` visit. The browser followed a `302` answered to a `PATCH`, `PUT` or `DELETE`
   fetch (a `data-turbo-method` link) with the same method, and the redirect target usually answered `405`. This covers

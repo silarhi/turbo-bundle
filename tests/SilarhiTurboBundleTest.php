@@ -44,8 +44,8 @@ use Twig\Environment;
 use Twig\Loader\ArrayLoader;
 
 /**
- * The only tests that need symfony/config and symfony/dependency-injection: the
- * "without the bundle dependencies" CI job removes both and excludes this group.
+ * Needs symfony/config and symfony/dependency-injection: the "without the bundle
+ * dependencies" CI job removes both and excludes this group.
  */
 #[Group('bundle')]
 class SilarhiTurboBundleTest extends TestCase

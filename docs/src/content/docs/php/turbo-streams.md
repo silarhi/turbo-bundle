@@ -93,7 +93,7 @@ content|turbo_stream(action, target = null, targets = null, attributes = {})
 ```
 
 - `target` is an element id, `targets` a CSS selector: pass one of them, not both.
-- Named arguments use `=` for compatibility with Twig 3.0, for example `targets = '.notification'`.
+- Named arguments use `=`, for example `targets = '.notification'`: Twig only accepts `:` from 3.12.
 - `attributes` adds attributes to the stream (`method`, `request-id`, `data-*`…). `true` renders the name alone,
   `false` and `null` leave it out; `action`, `target` and `targets` come from the arguments.
 - An empty content gets no `<template>`, as `remove`, `refresh` and actions without content expect.
@@ -121,7 +121,7 @@ Plain content is escaped. To pass rendered HTML, capture it with `{% set %}` (or
 {{ turbo_stream('replace', 'project_1', content) }}
 ```
 
-The filter and function both work with Twig 3.0 and share the same rules for targets, attributes and empty content.
+The filter and function share the same rules for targets, attributes and empty content.
 
 ### Optional Twig component
 

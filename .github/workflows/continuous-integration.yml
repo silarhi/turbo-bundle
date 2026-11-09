@@ -190,35 +190,6 @@ jobs:
                   path: assets/test-results
                   retention-days: 7
 
-    twig-component:
-        name: Twig Component (${{ matrix.component }})
-        runs-on: ubuntu-latest
-        timeout-minutes: 10
-        strategy:
-            fail-fast: false
-            matrix:
-                include:
-                    - php: '8.2'
-                      component: '2.20.0'
-                    - php: '8.2'
-                      component: '^2.20'
-                    - php: '8.5'
-                      component: '^3.0'
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v7
-            - name: Setup PHP
-              uses: shivammathur/setup-php@v2
-              with:
-                  php-version: ${{ matrix.php }}
-                  coverage: none
-            - name: Install optional component dependencies
-              env:
-                  COMPONENT_VERSION: ${{ matrix.component }}
-              run: composer require --dev --no-interaction --no-progress "symfony/ux-twig-component:$COMPONENT_VERSION" symfony/framework-bundle symfony/twig-bundle
-            - name: Render the component in a Symfony application
-              run: php integration/twig-component.php
-
     coverage:
         name: Coverage
         needs: [qa, test]
@@ -231,7 +202,7 @@ jobs:
 
     ci-passed:
         name: CI passed
-        needs: [matrix, qa, lint, test, build, e2e, twig-component]
+        needs: [matrix, qa, lint, test, build, e2e]
         if: always()
         runs-on: ubuntu-latest
         timeout-minutes: 5

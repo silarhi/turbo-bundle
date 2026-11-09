@@ -7,7 +7,6 @@
 /.prettierrc export-ignore
 /CONTRIBUTING.md export-ignore
 /docs export-ignore
-/integration export-ignore
 /package.json export-ignore
 /pnpm-lock.yaml export-ignore
 /phpstan.neon export-ignore
