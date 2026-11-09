@@ -135,6 +135,15 @@ jobs:
               run: pnpm install --frozen-lockfile
             - name: Build
               run: pnpm build
+            # Not on Renovate's pull requests: it bumps the bundler without running the pre-commit hook.
+            - name: Verify the committed dist is up to date
+              if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'renovate[bot]'
+              run: |
+                  if [ -n "$(git status --porcelain -- dist)" ]; then
+                      git status --porcelain -- dist
+                      echo "::error::assets/dist is stale: run pnpm build in assets/ and commit the result."
+                      exit 1
+                  fi
 
     e2e:
         name: E2E (Turbo ${{ matrix.turbo }})

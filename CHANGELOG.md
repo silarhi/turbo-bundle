@@ -5,6 +5,15 @@ All notable changes to `silarhi/turbo-bundle` (Composer) and `@silarhi/turbo` (n
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Both packages are released from the
 same git tag; since 0.2.1 the npm package version follows that tag.
 
+## [0.11.0] - Unreleased
+
+### Changed
+
+- `assets/dist` is committed, as in the `symfony/ux-*` packages, so the
+  `"@silarhi/turbo-bundle": "file:vendor/silarhi/turbo-bundle/assets"` entry Symfony Flex adds to `package.json` can be
+  imported. In a Flex application, import from `@silarhi/turbo-bundle` and remove `@silarhi/turbo` from `package.json`:
+  the JS half then follows the version of `composer.lock`. `@silarhi/turbo` stays published on npm for other projects.
+
 ## [0.10.0] - 2026-11-09
 
 ### Added
@@ -262,6 +271,7 @@ First tagged release. (`@silarhi/turbo@0.1.0` was published to npm ahead of it, 
   a matching Turbo Frame.
 
 [Unreleased]: https://github.com/silarhi/turbo-bundle/compare/v0.8.3...HEAD
+[0.11.0]: https://github.com/silarhi/turbo-bundle/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/silarhi/turbo-bundle/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/silarhi/turbo-bundle/compare/v0.8.3...v0.9.0
 [0.8.3]: https://github.com/silarhi/turbo-bundle/compare/v0.8.2...v0.8.3

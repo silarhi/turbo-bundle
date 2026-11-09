@@ -1,1 +1,20 @@
 lint-staged
+
+# Composer installs the committed assets/dist: keep it in step with what feeds the bundle.
+if git diff --cached --name-only | grep -qE '^assets/(src/|package\.json$|pnpm-lock\.yaml$|tsconfig\.json$|tsdown\.config\.ts$)'; then
+    if [ ! -x assets/node_modules/.bin/tsdown ]; then
+        echo 'pre-commit: cannot rebuild assets/dist, its dependencies are missing. Run: pnpm --dir assets install' >&2
+        exit 1
+    fi
+
+    # Build from the index, so that unstaged changes stay out of dist.
+    tmp=$(mktemp -d)
+    trap 'rm -rf "$tmp"' EXIT
+    git checkout-index --all --prefix="$tmp/"
+    ln -s "$PWD/assets/node_modules" "$tmp/assets/node_modules"
+    (cd "$tmp/assets" && node_modules/.bin/tsdown --logLevel warn)
+
+    rm -rf assets/dist
+    cp -R "$tmp/assets/dist" assets/dist
+    git add --all -- assets/dist
+fi

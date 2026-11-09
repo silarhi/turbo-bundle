@@ -40,6 +40,20 @@ uses them, and a Symfony application already has them through `symfony/framework
 pnpm add @silarhi/turbo
 ```
 
+In a Symfony application with [Flex](https://symfony.com/doc/current/setup/flex.html) and a `package.json`, skip this
+step. As for the `symfony/ux-*` packages, `composer require silarhi/turbo-bundle` links the JS half from `vendor/`:
+
+```json
+{
+    "devDependencies": {
+        "@silarhi/turbo-bundle": "file:vendor/silarhi/turbo-bundle/assets"
+    }
+}
+```
+
+Run `pnpm install` and import from `@silarhi/turbo-bundle` instead of `@silarhi/turbo`: it is the same code, at the
+version of your `composer.lock`. Composer has to run before the JS install, also in your CI.
+
 With [AssetMapper](https://symfony.com/doc/current/frontend/asset_mapper.html), add it to the import map instead:
 
 ```bash
