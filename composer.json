@@ -9,7 +9,6 @@
         "symfony",
         "turbo-frame",
         "symfony-bundle",
-        "symfony-ux",
         "turbo-stream",
         "twig"
     ],
