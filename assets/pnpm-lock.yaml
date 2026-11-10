@@ -186,7 +186,7 @@ importers:
         version: 31.0.0
       tom-select:
         specifier: ^2.6.2
-        version: 2.6.2
+        version: 2.7.0
       tsdown:
         specifier: ^0.23.1
         version: 0.23.7(typescript@7.0.2)
@@ -1061,8 +1061,8 @@ packages:
     resolution: {integrity: sha512-QwBER5KMR86IIjpIiO7H/Z3IMJPsZ1A6RKPAqzTTgOyUQUSt9FdnKcqhTaJmkY6HVrgouZHZR0ncK5QxvmnQeg==}
     hasBin: true
 
-  tom-select@2.6.2:
-    resolution: {integrity: sha512-eiXIkk82XzzUTOVQDFpy+ZGejuqdTvMukyUyeZBQaKnqW42UoTiTZnrod/eX0rkqJEc4rZY9DZ3zdjV07i29wQ==}
+  tom-select@2.7.0:
+    resolution: {integrity: sha512-i/iuTfrzYfGPAILfgPdU9/CCSm8XcnomjO2bHjAcFQPV7od0ghVngjaMfB5x5Agkrpe+49/tK6soegrwWyi6Lg==}
 
   tough-cookie@6.0.2:
     resolution: {integrity: sha512-exgYmnmL/sJpR3upZfXG5PoatXQii55xAiXGXzY+sROLZ/Y+SLcp9PgJNI9Vz37HpQ74WvDcLT8eqm+kV3FzrA==}
@@ -1869,7 +1869,7 @@ snapshots:
     dependencies:
       tldts-core: 7.4.16
 
-  tom-select@2.6.2:
+  tom-select@2.7.0:
     dependencies:
       '@orchidjs/sifter': 1.1.0
       '@orchidjs/unicode-variants': 1.2.2
