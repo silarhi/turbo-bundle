@@ -64,6 +64,7 @@ The two halves solve different problems and only meet on redirect following (the
 - **Frame-redirect following**: a redirect inside a Turbo Frame becomes a full Drive visit, `DELETE` redirects too
 - **`303 See Other`**: other redirects answered to a non-GET Turbo request are followed with a `GET`
 - **`turbo_frame` Twig filter**: extend a lean frame template only when the request targets a matching frame
+- **Turbo Stream answers**: `acceptsTurboStream()`, `TurboStreamRenderer` and a `turbo_stream` filter for any action
 - **Request id**: `getTurboRequestId()` / `turbo_request_id()`, so a broadcast `refresh` skips the tab that sent it
 - **Test helpers**: `TurboAssertionsTrait` sends Turbo's headers and asserts Turbo Stream and `Turbo-Location` responses
 - **Framework-optional**: the bundle gives zero-config wiring; the classes also work standalone
@@ -112,7 +113,7 @@ Everything else is on **[turbo-bundle.silarhi.dev](https://turbo-bundle.silarhi.
 
 - [Installation](https://turbo-bundle.silarhi.dev/getting-started/installation/) and [quick start](https://turbo-bundle.silarhi.dev/getting-started/quick-start/)
 - JavaScript: [`TurboHandler`](https://turbo-bundle.silarhi.dev/javascript/turbo-handler/), [stream mutations](https://turbo-bundle.silarhi.dev/javascript/stream-mutations/), [morph mutations](https://turbo-bundle.silarhi.dev/javascript/morph-mutations/), [frame responses without a matching frame](https://turbo-bundle.silarhi.dev/javascript/frame-missing/), [keeping a redirect in its frame](https://turbo-bundle.silarhi.dev/javascript/follow-redirect/)
-- PHP: [frame-redirect following](https://turbo-bundle.silarhi.dev/php/frame-redirects/), [the `turbo_frame` Twig filter](https://turbo-bundle.silarhi.dev/php/turbo-frame-filter/), [without the framework](https://turbo-bundle.silarhi.dev/php/without-framework/)
+- PHP: [frame-redirect following](https://turbo-bundle.silarhi.dev/php/frame-redirects/), [the `turbo_frame` Twig filter](https://turbo-bundle.silarhi.dev/php/turbo-frame-filter/), [Turbo Stream answers](https://turbo-bundle.silarhi.dev/php/turbo-streams/), [without the framework](https://turbo-bundle.silarhi.dev/php/without-framework/)
 - Reference: [configuration](https://turbo-bundle.silarhi.dev/reference/configuration/), [`TurboHandler` options](https://turbo-bundle.silarhi.dev/reference/turbo-handler/), [PHP API](https://turbo-bundle.silarhi.dev/reference/php-api/), [HTTP headers](https://turbo-bundle.silarhi.dev/reference/http-headers/)
 
 ## Contributing
