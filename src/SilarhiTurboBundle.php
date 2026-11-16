@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Silarhi\TurboBundle;
 
+use function dirname;
+
 use Silarhi\TurboBundle\EventListener\TurboFrameListener;
 use Silarhi\TurboBundle\Twig\TurboExtension;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
@@ -28,8 +30,9 @@ use Twig\Extension\AbstractExtension;
  * Optional zero-config wiring for full Symfony applications.
  *
  * Register it in `config/bundles.php` to get TurboManager + TurboFrameListener
- * (and, when Twig is installed, the `turbo_frame` filter). Projects without the
- * framework can skip this class entirely and instantiate the classes directly.
+ * (and, when Twig is installed, the Twig extension and TurboStreamRenderer).
+ * Projects without the framework can skip this class entirely and instantiate
+ * the classes directly.
  *
  * Configuration (default values shown):
  *
@@ -40,6 +43,15 @@ use Twig\Extension\AbstractExtension;
  */
 final class SilarhiTurboBundle extends AbstractBundle
 {
+    public function prependExtension(ContainerConfigurator $configurator, ContainerBuilder $container): void
+    {
+        if ($container->hasExtension('twig')) {
+            $container->prependExtensionConfig('twig', [
+                'paths' => [dirname(__DIR__) . '/templates' => 'Turbo'],
+            ]);
+        }
+    }
+
     public function configure(DefinitionConfigurator $definition): void
     {
         $definition->rootNode()
@@ -75,6 +87,9 @@ final class SilarhiTurboBundle extends AbstractBundle
             $services->set(TurboExtension::class)
                 ->args([service(TurboManager::class), $config['base_template']])
                 ->tag('twig.extension');
+
+            $services->set(TurboStreamRenderer::class)
+                ->args([service('twig')]);
         }
     }
 }

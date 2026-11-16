@@ -2,7 +2,7 @@
 title: Without the framework
 description: Use TurboManager, TurboFrameListener and the Twig extension with Symfony components only.
 sidebar:
-    order: 5
+    order: 6
 ---
 
 The PHP half depends on three Symfony components only, `symfony/http-foundation`, `symfony/http-kernel` and
@@ -13,6 +13,7 @@ the container) and instantiate the classes:
 ```php
 use Silarhi\TurboBundle\EventListener\TurboFrameListener;
 use Silarhi\TurboBundle\TurboManager;
+use Silarhi\TurboBundle\TurboStreamRenderer;
 use Silarhi\TurboBundle\Twig\TurboExtension;
 
 $turboManager = new TurboManager($requestStack);
@@ -21,6 +22,9 @@ $dispatcher->addSubscriber(new TurboFrameListener($turboManager));
 // Optional: the turbo_frame Twig filter (requires twig/twig).
 // The second argument is the base template the filter falls back to (default: 'base-frame.html.twig').
 $twig->addExtension(new TurboExtension($turboManager, 'base-frame.html.twig'));
+
+// Optional: render a template or one of its blocks as a Turbo Stream response (requires twig/twig).
+$turboStreamRenderer = new TurboStreamRenderer($twig);
 ```
 
 `TurboFrameListener` also follows `DELETE` redirects on Turbo requests by default; pass

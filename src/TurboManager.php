@@ -31,7 +31,7 @@ final readonly class TurboManager
 {
     public const VARY_ATTRIBUTE = '_turbo_frame_vary';
 
-    private const STREAM_CONTENT_TYPE = 'text/vnd.turbo-stream.html';
+    public const STREAM_CONTENT_TYPE = 'text/vnd.turbo-stream.html';
 
     public function __construct(
         private RequestStack $requestStack,
@@ -61,13 +61,20 @@ final readonly class TurboManager
      */
     public function isTurboRequest(): bool
     {
-        $headers = $this->getRequest()?->headers;
-        if (null === $headers) {
-            return false;
-        }
+        return ($this->getRequest()?->headers->has('x-turbo-request-id') ?? false) || $this->acceptsTurboStream();
+    }
 
-        return $headers->has('x-turbo-request-id')
-            || str_contains((string) $headers->get('accept'), self::STREAM_CONTENT_TYPE);
+    /**
+     * Whether the request accepts a Turbo Stream answer: Turbo asks for one on its
+     * form submissions (a `data-turbo-method` link included) and on `data-turbo-stream`
+     * links. A browser without JavaScript never does: answer it with a redirect.
+     *
+     * A Drive form outside any frame asks for one too. When the answer must leave
+     * the page there, decide on the frame instead (`getTurboFrameId()`).
+     */
+    public function acceptsTurboStream(): bool
+    {
+        return str_contains((string) $this->getRequest()?->headers->get('accept'), self::STREAM_CONTENT_TYPE);
     }
 
     /**
