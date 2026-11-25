@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Silarhi\TurboBundle;
 
+use Symfony\Component\HttpFoundation\HeaderBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -62,7 +63,7 @@ final readonly class TurboManager
     public function isTurboRequest(): bool
     {
         $headers = $this->getRequest()?->headers;
-        if (null === $headers) {
+        if (!$headers instanceof HeaderBag) {
             return false;
         }
 
