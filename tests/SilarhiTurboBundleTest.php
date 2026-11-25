@@ -268,7 +268,7 @@ class SilarhiTurboBundleTest extends TestCase
         $container->register('event_dispatcher', EventDispatcher::class)->setPublic(true);
         $container->setAlias('test.twig_extension', TurboExtension::class)->setPublic(true);
         $container->addCompilerPass(new RegisterListenersPass());
-        $container->compile();
+        $container->compile(true);
 
         return $container;
     }
