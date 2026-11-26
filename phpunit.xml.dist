@@ -4,6 +4,11 @@
          bootstrap="tests/bootstrap.php"
          colors="true"
 >
+    <php>
+        <!-- Keep dependency diagnostics out of buffered template output. -->
+        <ini name="display_errors" value="stderr"/>
+    </php>
+
     <testsuites>
         <testsuite name="Turbo Bundle Test Suite">
             <directory>tests</directory>

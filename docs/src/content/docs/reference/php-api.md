@@ -20,6 +20,7 @@ public function __construct(RequestStack $requestStack)
 | `followTurboFrameRedirect(): bool` | Whether a redirect should be escalated: a `Turbo-Frame` header and no `Turbo-Frame-Follow-Redirect` header.                                                                |
 | `isTurboRequest(): bool`           | Whether Turbo sent the request: an `X-Turbo-Request-Id` header (Turbo 8), or an `Accept` header with `text/vnd.turbo-stream.html` (the form submissions of Turbo 7 and 8). |
 | `getTurboRequestId(): ?string`     | The `X-Turbo-Request-Id` header (Turbo 8), or `null`: the `request-id` of a [broadcast `refresh` stream](/php/request-id/).                                                |
+| `acceptsTurboStream(): bool`       | Whether the `Accept` header has `text/vnd.turbo-stream.html`: the request takes a [Turbo Stream answer](/php/turbo-streams/).                                              |
 
 Without a current request on the stack (a console command, a message handler, an email rendered outside a request),
 every method answers as for a plain request: `false`, or `null` for `getTurboFrameId()` and `getTurboRequestId()`.
@@ -60,14 +61,30 @@ so it works on Symfony 6.4 and 7.0 to 7.2, where attribute-based Twig extensions
 public function __construct(TurboManager $turboManager, string $baseTemplate = 'base-frame.html.twig')
 ```
 
-| Method                                                                                                                  | Effect                                                                                                                                                                 |
-| ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `getFilters(): array`                                                                                                   | The `turbo_frame` filter.                                                                                                                                              |
-| `getFunctions(): array`                                                                                                 | The `turbo_frame_request`, `turbo_frame_id` and `turbo_request_id` functions.                                                                                          |
-| `isTurboFrameRequest(?string $frameId = null): bool`                                                                    | Whether the request targets a Turbo Frame, any or the given one ([functions](/php/turbo-frame-filter/#branching-on-the-frame-turbo_frame_request-and-turbo_frame_id)). |
-| `turboFrameId(): ?string`                                                                                               | The id of the requesting frame, or `null`.                                                                                                                             |
-| `turboRequestId(): ?string`                                                                                             | The `X-Turbo-Request-Id` of the request, or `null` ([request id](/php/request-id/)).                                                                                   |
-| `turboFrame(Environment $environment, string $template, ?string $frameId = null, ?string $baseTemplate = null): string` | The template to extend ([resolution](/php/turbo-frame-filter/#resolution)).                                                                                            |
+| Method                                                                                                                                      | Effect                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getFilters(): array`                                                                                                                       | The `turbo_frame` and `turbo_stream` filters.                                                                                                                          |
+| `getFunctions(): array`                                                                                                                     | The `turbo_frame_request`, `turbo_frame_id` and `turbo_request_id` functions.                                                                                          |
+| `isTurboFrameRequest(?string $frameId = null): bool`                                                                                        | Whether the request targets a Turbo Frame, any or the given one ([functions](/php/turbo-frame-filter/#branching-on-the-frame-turbo_frame_request-and-turbo_frame_id)). |
+| `turboFrameId(): ?string`                                                                                                                   | The id of the requesting frame, or `null`.                                                                                                                             |
+| `turboRequestId(): ?string`                                                                                                                 | The `X-Turbo-Request-Id` of the request, or `null` ([request id](/php/request-id/)).                                                                                   |
+| `turboFrame(Environment $environment, string $template, ?string $frameId = null, ?string $baseTemplate = null): string`                     | The template to extend ([resolution](/php/turbo-frame-filter/#resolution)).                                                                                            |
+| `turboStream(string\|Stringable $content, string $action, ?string $target = null, ?string $targets = null, array $attributes = []): string` | The content wrapped in a `<turbo-stream>` ([filter](/php/turbo-streams/#writing-streams-the-turbo_stream-filter)).                                                     |
+
+## `TurboStreamRenderer`
+
+`Silarhi\TurboBundle\TurboStreamRenderer` renders a template, or one of its blocks, as a Turbo Stream response
+([Answering with Turbo Streams](/php/turbo-streams/)). It depends on Twig only.
+
+```php
+public function __construct(Environment $twig)
+```
+
+| Method                                                                                             | Returns                                                                                     |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `render(string $view, array $parameters = [], ?string $block = null, int $status = 200): Response` | The rendered template, or its `$block`, with the `text/vnd.turbo-stream.html` content type. |
+
+`TurboManager::STREAM_CONTENT_TYPE` holds that content type.
 
 ## `TurboAssertionsTrait`
 
@@ -85,4 +102,5 @@ is `public static`.
 ## `SilarhiTurboBundle`
 
 `Silarhi\TurboBundle\SilarhiTurboBundle` is the optional bundle: it defines the
-[configuration](/reference/configuration/) and registers the three services above.
+[configuration](/reference/configuration/) and registers `TurboManager` and `TurboFrameListener`, plus
+`TurboExtension` and `TurboStreamRenderer` when Twig is installed.

@@ -20,6 +20,7 @@ use PHPUnit\Framework\TestCase;
 use Silarhi\TurboBundle\EventListener\TurboFrameListener;
 use Silarhi\TurboBundle\SilarhiTurboBundle;
 use Silarhi\TurboBundle\TurboManager;
+use Silarhi\TurboBundle\TurboStreamRenderer;
 use Silarhi\TurboBundle\Twig\TurboExtension;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
@@ -133,6 +134,13 @@ class SilarhiTurboBundleTest extends TestCase
         $definition = $this->loadExtension(['base_template' => 'layout/_frame.html.twig'])->getDefinition(TurboExtension::class);
 
         self::assertEquals([new Reference(TurboManager::class), 'layout/_frame.html.twig'], $definition->getArguments());
+    }
+
+    public function testRegistersTheTurboStreamRendererOnTwig(): void
+    {
+        $definition = $this->loadExtension([])->getDefinition(TurboStreamRenderer::class);
+
+        self::assertEquals([new Reference('twig')], $definition->getArguments());
     }
 
     public function testLaterConfigurationsOverrideEarlierOnes(): void

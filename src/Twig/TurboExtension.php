@@ -13,7 +13,12 @@ declare(strict_types=1);
 
 namespace Silarhi\TurboBundle\Twig;
 
+use InvalidArgumentException;
 use Silarhi\TurboBundle\TurboManager;
+
+use function sprintf;
+
+use Stringable;
 use Twig\Environment;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
@@ -44,6 +49,12 @@ use Twig\TwigFunction;
  * `turbo_request_id()` returns the `X-Turbo-Request-Id` of the request, for the
  * `request-id` of a broadcast `refresh` stream.
  *
+ * The `turbo_stream` filter wraps its content in a `<turbo-stream>` of any action,
+ * a custom one included:
+ *
+ *     {% apply turbo_stream('append', 'flash-alerts') %}…{% endapply %}
+ *     {{ ''|turbo_stream('modalClose', 'app-modal') }}
+ *
  * Classic AbstractExtension form (not the `#[AsTwigFilter]` attribute) so the
  * bundle keeps working on Symfony 6.4 / 7.0-7.2, where attribute-based Twig
  * extensions are not auto-registered.
@@ -63,6 +74,7 @@ final class TurboExtension extends AbstractExtension
     {
         return [
             new TwigFilter('turbo_frame', $this->turboFrame(...), ['needs_environment' => true]),
+            new TwigFilter('turbo_stream', $this->turboStream(...), ['pre_escape' => 'html', 'is_safe' => ['html']]),
         ];
     }
 
@@ -123,5 +135,31 @@ final class TurboExtension extends AbstractExtension
         }
 
         return $baseTemplate ?? $this->baseTemplate;
+    }
+
+    /**
+     * Wraps the content in a `<turbo-stream>` of this action, built-in or custom: the
+     * `<twig:Turbo:Stream:*>` components of symfony/ux-turbo cover the built-in ones only.
+     * An empty content (`remove`, `refresh`, an action without one) gets no `<template>`.
+     *
+     * @param array<string, string|int|float|bool|null> $attributes more attributes of the stream:
+     *                                                              `true` renders the name alone, `false` and `null` leave it out
+     */
+    public function turboStream(string|Stringable $content, string $action, ?string $target = null, ?string $targets = null, array $attributes = []): string
+    {
+        if (null !== $target && null !== $targets) {
+            throw new InvalidArgumentException(sprintf('The "%s" Turbo Stream takes a target or targets, not both.', $action));
+        }
+
+        $html = '<turbo-stream';
+        foreach (['action' => $action, 'target' => $target, 'targets' => $targets] + $attributes as $name => $value) {
+            if (null === $value || false === $value) {
+                continue;
+            }
+            $html .= true === $value ? ' ' . $name : sprintf(' %s="%s"', $name, htmlspecialchars((string) $value, \ENT_QUOTES | \ENT_SUBSTITUTE, 'UTF-8'));
+        }
+        $content = (string) $content;
+
+        return $html . '>' . ('' === $content ? '' : '<template>' . $content . '</template>') . '</turbo-stream>';
     }
 }

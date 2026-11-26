@@ -2,7 +2,7 @@
 title: Skipping your own refresh broadcast
 description: Set the X-Turbo-Request-Id of the request on a broadcast refresh stream, so the tab that made the change does not refresh twice.
 sidebar:
-    order: 3
+    order: 4
 ---
 
 A Turbo 8 page refresh broadcast (`<turbo-stream action="refresh">`, over Mercure for example) reaches every tab
