@@ -22,6 +22,10 @@ public function __construct(RequestStack $requestStack)
 | `getTurboRequestId(): ?string`     | The `X-Turbo-Request-Id` header (Turbo 8), or `null`: the `request-id` of a [broadcast `refresh` stream](/php/request-id/).                                                |
 | `acceptsTurboStream(): bool`       | Whether the `Accept` header has `text/vnd.turbo-stream.html`: the request takes a [Turbo Stream answer](/php/turbo-streams/).                                              |
 
+Reading `Turbo-Frame` (`hasTurboFrame()`, `getTurboFrameId()`, `followTurboFrameRedirect()`) flags the request for
+`Vary: Turbo-Frame`, and `acceptsTurboStream()` (or `isTurboRequest()`) for `Vary: Accept`: `TurboFrameListener` adds
+them to the response ([HTTP headers](/reference/http-headers/)).
+
 Without a current request on the stack (a console command, a message handler, an email rendered outside a request),
 every method answers as for a plain request: `false`, or `null` for `getTurboFrameId()` and `getTurboRequestId()`.
 
@@ -47,10 +51,10 @@ to any Symfony event dispatcher.
 public function __construct(TurboManager $turboManager, bool $followDeleteRedirects = true)
 ```
 
-| Method                                         | Effect                                                                                                                                                                                                                                                   |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `getSubscribedEvents(): array` (static)        | `kernel.response` → `onKernelResponse`, default priority.                                                                                                                                                                                                |
-| `onKernelResponse(ResponseEvent $event): void` | Replaces a redirect with a `204 + Turbo-Location`, keeping its other headers and cookies ([rules](/php/frame-redirects/#when-a-redirect-is-converted)), or turns it into a `303` ([rules](/php/frame-redirects/#303-see-other-for-the-other-redirects)). |
+| Method                                         | Effect                                                                                                                                                                                                                                                                                                                                         |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getSubscribedEvents(): array` (static)        | `kernel.response` → `onKernelResponse`, default priority.                                                                                                                                                                                                                                                                                      |
+| `onKernelResponse(ResponseEvent $event): void` | Replaces a redirect with a `204 + Turbo-Location`, keeping its other headers and cookies ([rules](/php/frame-redirects/#when-a-redirect-is-converted)), or turns it into a `303` ([rules](/php/frame-redirects/#303-see-other-for-the-other-redirects)). Adds `Vary: Turbo-Frame` and `Vary: Accept` to the responses that read those headers. |
 
 ## `TurboExtension`
 

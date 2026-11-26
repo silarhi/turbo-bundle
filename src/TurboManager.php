@@ -27,10 +27,14 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *
  * Reading the `Turbo-Frame` header flags the request (and the main request), so
  * TurboFrameListener adds `Vary: Turbo-Frame` to responses that depend on it.
+ * Asking whether the request accepts a Turbo Stream flags it the same way, for
+ * `Vary: Accept`.
  */
 final readonly class TurboManager
 {
     public const VARY_ATTRIBUTE = '_turbo_frame_vary';
+
+    public const STREAM_VARY_ATTRIBUTE = '_turbo_stream_vary';
 
     public const STREAM_CONTENT_TYPE = 'text/vnd.turbo-stream.html';
 
@@ -80,7 +84,12 @@ final readonly class TurboManager
      */
     public function acceptsTurboStream(): bool
     {
-        return str_contains((string) $this->getRequest()?->headers->get('accept'), self::STREAM_CONTENT_TYPE);
+        $request = $this->getRequest();
+        // A `data-turbo-stream` link is a GET: a shared cache must not serve its stream to a full visit
+        $request?->attributes->set(self::STREAM_VARY_ATTRIBUTE, true);
+        $this->requestStack->getMainRequest()?->attributes->set(self::STREAM_VARY_ATTRIBUTE, true);
+
+        return str_contains((string) $request?->headers->get('accept'), self::STREAM_CONTENT_TYPE);
     }
 
     /**

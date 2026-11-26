@@ -30,6 +30,9 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * Any other `301` / `302` answered to a non-GET Turbo request becomes a `303 See
  * Other`, so the browser follows it with a `GET`.
  *
+ * Adds `Vary: Turbo-Frame` and `Vary: Accept` to the responses that read those
+ * headers through TurboManager.
+ *
  * Implements EventSubscriberInterface only, so it can be added to any Symfony
  * event dispatcher (`$dispatcher->addSubscriber(...)`) without the framework.
  */
@@ -57,8 +60,12 @@ final readonly class TurboFrameListener implements EventSubscriberInterface
         $this->convertToSeeOther($event);
 
         // A shared cache must not serve the frame layout of a page to a full visit, or the other way round
-        if (true === $event->getRequest()->attributes->get(TurboManager::VARY_ATTRIBUTE)) {
+        $attributes = $event->getRequest()->attributes;
+        if (true === $attributes->get(TurboManager::VARY_ATTRIBUTE)) {
             $event->getResponse()->setVary('Turbo-Frame', false);
+        }
+        if (true === $attributes->get(TurboManager::STREAM_VARY_ATTRIBUTE)) {
+            $event->getResponse()->setVary('Accept', false);
         }
     }
 

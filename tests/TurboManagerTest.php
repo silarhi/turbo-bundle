@@ -53,6 +53,28 @@ class TurboManagerTest extends TestCase
         self::assertFalse($request->attributes->has(TurboManager::VARY_ATTRIBUTE));
     }
 
+    public function testAskingForAStreamFlagsTheRequestsForVary(): void
+    {
+        $main = new Request();
+        $fragment = Request::create('/_fragment');
+        $stack = new RequestStack();
+        $stack->push($main);
+        $stack->push($fragment);
+        (new TurboManager($stack))->acceptsTurboStream();
+
+        self::assertTrue($fragment->attributes->get(TurboManager::STREAM_VARY_ATTRIBUTE));
+        self::assertTrue($main->attributes->get(TurboManager::STREAM_VARY_ATTRIBUTE));
+        self::assertFalse($main->attributes->has(TurboManager::VARY_ATTRIBUTE));
+    }
+
+    public function testReadingTheFrameHeaderDoesNotFlagTheRequestForAcceptVary(): void
+    {
+        $request = new Request();
+        $this->managerFor($request)->getTurboFrameId();
+
+        self::assertFalse($request->attributes->has(TurboManager::STREAM_VARY_ATTRIBUTE));
+    }
+
     public function testFollowTurboFrameRedirectRequiresFrameWithoutFollowHeader(): void
     {
         $request = new Request();

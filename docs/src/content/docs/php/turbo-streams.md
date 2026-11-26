@@ -28,6 +28,9 @@ public function delete(Project $item, TurboManager $turbo, TurboStreamRenderer $
 }
 ```
 
+Asking makes the response vary on the `Accept` header: `TurboFrameListener` adds `Vary: Accept` to it. A
+`data-turbo-stream` link is a `GET`, and a shared cache must not serve its stream answer to a full visit of the same URL.
+
 A Drive form outside any frame asks for a stream too. When the answer must leave the page there (an edit page that goes
 back to the list), decide on the frame instead: a stream for the form of a modal frame, the redirect otherwise.
 

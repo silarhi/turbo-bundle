@@ -49,6 +49,9 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 
 ### Fixed
 
+- A response that depends on `TurboManager::acceptsTurboStream()` (or `isTurboRequest()`) gets `Vary: Accept`, as one
+  that reads `Turbo-Frame` gets `Vary: Turbo-Frame`. A `data-turbo-stream` link is a `GET`: a shared cache could serve
+  its stream answer to a full visit of the same URL, or the page to the link.
 - A Turbo Stream with `method="morph"` (`replace` or `update`) re-mounts its targets. Turbo morphs them in place,
   which the child list diff of `streamMutations` doesn't see: nothing was unmounted or mounted, and a widget in the
   target (a Tom Select) lost its markup and stopped working. Each target is now unmounted before the render and mounted
