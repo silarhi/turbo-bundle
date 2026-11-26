@@ -7,5 +7,5 @@
  * with this source code in the file LICENSE.
  */
 
-export type { TurboHandlerOptions } from './TurboHandler'
+export type { MountCleanup, MountContext, TurboHandlerOptions } from './TurboHandler'
 export { TurboHandler } from './TurboHandler'

@@ -1,12 +1,29 @@
+/** What `onMount` gets with the container, for what it mounts there. */
+interface MountContext {
+  /**
+   * Aborted when the handler unmounts the container, before `onUnmount`: pass it
+   * to `addEventListener()`, `fetch()` or an `AbortSignal.any()`.
+   */
+  readonly signal: AbortSignal;
+}
+/** Returned by `onMount`, it tears down what it mounted when the handler unmounts the container. */
+type MountCleanup = () => void;
+type MountCallback = (container: Element, context: MountContext) => void | MountCleanup;
 interface TurboHandlerOptions {
   /**
    * Mount your per-container listeners on a freshly rendered/inserted element:
    * the `getContainer` element, a `<turbo-frame>`, or a node a Stream inserted.
    * A wider `(container: Element | Document) => void` function fits too.
+   *
+   * Return a function to tear down what it mounted, or use `context.signal`:
+   * both run when the handler unmounts this container, before `onUnmount`.
    */
-  onMount: (container: Element) => void;
-  /** Tear down the listeners previously mounted on a container before it leaves the DOM. */
-  onUnmount: (container: Element) => void;
+  onMount: MountCallback;
+  /**
+   * Tear down the listeners previously mounted on a container before it leaves
+   * the DOM. Optional when `onMount` returns a cleanup or uses its signal.
+   */
+  onUnmount?: (container: Element) => void;
   /**
    * Resolve the root element a full Turbo Drive render mounts on.
    * Defaults to `document.body`.
@@ -74,4 +91,4 @@ export declare class TurboHandler {
   /** Detach every document listener and reset to a pre-boot state. Idempotent. */
   stop(): void;
 }
-export type { TurboHandlerOptions };
+export type { MountCleanup, MountContext, TurboHandlerOptions };

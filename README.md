@@ -67,6 +67,7 @@ The two halves solve different problems and only meet on redirect following (the
 - **Turbo Stream answers**: `acceptsTurboStream()`, `TurboStreamRenderer` and a `turbo_stream` filter for any action
 - **Streams from anywhere**: `TurboStreamCollector` adds streams from any service to the stream answer of the request
 - **Turbo 8 page helpers**: `turbo_refreshes_with()`, `turbo_exempts_page_from_cache()` and friends render the meta tags
+- **Cleanup and signal**: `onMount` can return a cleanup, and gets an `AbortSignal` aborted when its container unmounts
 - **Request id**: `getTurboRequestId()` / `turbo_request_id()`, so a broadcast `refresh` skips the tab that sent it
 - **Test helpers**: `TurboAssertionsTrait` sends Turbo's headers and asserts streams, frames and `Turbo-Location`
 - **Missing frame warning**: in debug, a frame answer without its `<turbo-frame>` is logged instead of failing silently

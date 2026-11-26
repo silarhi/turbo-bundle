@@ -39,9 +39,15 @@ same git tag; since 0.2.1 the npm package version follows that tag.
   visits a page.
 - With `kernel.debug` on, `TurboFrameMissingListener` logs a warning when the HTML answer to a frame request has no
   `<turbo-frame>` of that id, which the browser shows as "Content missing".
+- `onMount` can return a cleanup function, and gets a `{ signal }` as its second argument: `TurboHandler` calls the
+  cleanup and aborts the signal when it unmounts that container, before `onUnmount`, which is now optional. A permanent
+  element that a container's cleanup tears down is mounted again on its own. The `MountContext` and `MountCleanup`
+  types are exported.
 
 ### Changed
 
+- A function that `onMount` returns is now called when the container unmounts: an `onMount` that returned the destroy
+  function of a library by chance now has it called, on top of `onUnmount`.
 - Twig 3.8 is now the minimum version when Twig is installed (`conflict` with `twig/twig` <3.8), the lowest one
   `symfony/ux-twig-component` 2.20 allows.
 - `TurboFrameListener` turns a `301` / `302` answered to a non-GET Turbo request into a `303 See Other`, when it does

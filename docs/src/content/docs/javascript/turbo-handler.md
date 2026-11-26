@@ -35,6 +35,36 @@ _what_.
 - [`morphMutations`](/javascript/morph-mutations/) calls them on individual elements, and may call `onUnmount` then
   `onMount` on the same element: make them safe to call on any element, and idempotent.
 
+### Cleanup and signal
+
+`onMount` can return a function that tears down what it mounted, and gets a `signal` as its second argument. Both
+end when the handler unmounts that container, before it calls `onUnmount`, which becomes optional:
+
+```ts
+new TurboHandler({
+    onMount: (container, { signal }) => {
+        const selects = [...container.querySelectorAll('select[data-tom-select]')].map(
+            (select) => new TomSelect(select)
+        )
+        container.addEventListener('click', onClick, { signal })
+        fetch('/notifications', { signal }).then(render)
+
+        return () => selects.forEach((select) => select.destroy())
+    },
+}).start()
+```
+
+- The signal is aborted, and the cleanup called, when the handler unmounts the container itself or an element around
+  it. Each `onMount` call gets its own.
+- With [`morphMutations`](/javascript/morph-mutations/), the handler unmounts and mounts single elements inside a
+  mounted container: the cleanup of the container still runs only when the container goes. Tear the widgets of an
+  element down in `onUnmount` there.
+- A [permanent element](#permanent-elements) that `onMount` mounted with its container is torn down by the cleanup of
+  that container too: the handler mounts it again right after, on its own, with its own cleanup. Its widgets start over
+  that once (a Tom Select goes back to the value it had on its first mount). Tear them down in `onUnmount` to keep their state.
+- A container that leaves the page without an unmount (removed by your own code) has its scope ended on the next
+  `turbo:load`.
+
 ## When the callbacks run
 
 | What Turbo does                                                                                                     | Call                                                                                                                       |
