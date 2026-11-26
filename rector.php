@@ -12,6 +12,7 @@ declare(strict_types=1);
  */
 
 use Rector\Config\RectorConfig;
+use Rector\Symfony\CodeQuality\Rector\Class_\EventSubscriberToAttributeRector;
 
 return RectorConfig::configure()
     ->withPaths([
@@ -24,4 +25,8 @@ return RectorConfig::configure()
         deadCode: true,
         codeQuality: true,
         typeDeclarations: true,
-    );
+    )
+    ->withSkip([
+        // The listeners stay EventSubscriberInterface: they work on any event dispatcher, without the framework
+        EventSubscriberToAttributeRector::class,
+    ]);

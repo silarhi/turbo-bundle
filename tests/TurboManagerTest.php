@@ -53,6 +53,28 @@ class TurboManagerTest extends TestCase
         self::assertFalse($request->attributes->has(TurboManager::VARY_ATTRIBUTE));
     }
 
+    public function testAskingForAStreamFlagsTheRequestsForVary(): void
+    {
+        $main = new Request();
+        $fragment = Request::create('/_fragment');
+        $stack = new RequestStack();
+        $stack->push($main);
+        $stack->push($fragment);
+        (new TurboManager($stack))->acceptsTurboStream();
+
+        self::assertTrue($fragment->attributes->get(TurboManager::STREAM_VARY_ATTRIBUTE));
+        self::assertTrue($main->attributes->get(TurboManager::STREAM_VARY_ATTRIBUTE));
+        self::assertFalse($main->attributes->has(TurboManager::VARY_ATTRIBUTE));
+    }
+
+    public function testReadingTheFrameHeaderDoesNotFlagTheRequestForAcceptVary(): void
+    {
+        $request = new Request();
+        $this->managerFor($request)->getTurboFrameId();
+
+        self::assertFalse($request->attributes->has(TurboManager::STREAM_VARY_ATTRIBUTE));
+    }
+
     public function testFollowTurboFrameRedirectRequiresFrameWithoutFollowHeader(): void
     {
         $request = new Request();
@@ -96,6 +118,21 @@ class TurboManagerTest extends TestCase
         self::assertFalse($this->managerFor($request)->isTurboRequest());
     }
 
+    public function testAcceptsTurboStreamReadsTheAcceptHeader(): void
+    {
+        $request = Request::create('/projects/1', 'PATCH');
+        $request->headers->set('Accept', 'text/vnd.turbo-stream.html, text/html, application/xhtml+xml');
+
+        self::assertTrue($this->managerFor($request)->acceptsTurboStream());
+        self::assertFalse($request->attributes->has(TurboManager::VARY_ATTRIBUTE));
+
+        // A Turbo 8 GET visit sends a request id, but accepts HTML only
+        $request = new Request();
+        $request->headers->set('X-Turbo-Request-Id', 'abc');
+        $request->headers->set('Accept', 'text/html, application/xhtml+xml');
+        self::assertFalse($this->managerFor($request)->acceptsTurboStream());
+    }
+
     public function testGetTurboRequestIdReadsTheRequestIdHeader(): void
     {
         $request = new Request();
@@ -114,6 +151,7 @@ class TurboManagerTest extends TestCase
         self::assertNull($manager->getTurboFrameId());
         self::assertFalse($manager->followTurboFrameRedirect());
         self::assertFalse($manager->isTurboRequest());
+        self::assertFalse($manager->acceptsTurboStream());
         self::assertNull($manager->getTurboRequestId());
     }
 

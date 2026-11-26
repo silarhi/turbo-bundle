@@ -37,15 +37,36 @@ import {
     streamTargets,
 } from './turbo'
 
+/** What `onMount` gets with the container, for what it mounts there. */
+export interface MountContext {
+    /**
+     * Aborted when the handler unmounts the container, before `onUnmount`: pass it
+     * to `addEventListener()`, `fetch()` or an `AbortSignal.any()`.
+     */
+    readonly signal: AbortSignal
+}
+
+/** Returned by `onMount`, it tears down what it mounted when the handler unmounts the container. */
+export type MountCleanup = () => void
+
+// biome-ignore lint/suspicious/noConfusingVoidType: `undefined` would reject the `(container) => void` callbacks of before
+type MountCallback = (container: Element, context: MountContext) => void | MountCleanup
+
 export interface TurboHandlerOptions {
     /**
      * Mount your per-container listeners on a freshly rendered/inserted element:
      * the `getContainer` element, a `<turbo-frame>`, or a node a Stream inserted.
      * A wider `(container: Element | Document) => void` function fits too.
+     *
+     * Return a function to tear down what it mounted, or use `context.signal`:
+     * both run when the handler unmounts this container, before `onUnmount`.
      */
-    onMount: (container: Element) => void
-    /** Tear down the listeners previously mounted on a container before it leaves the DOM. */
-    onUnmount: (container: Element) => void
+    onMount: MountCallback
+    /**
+     * Tear down the listeners previously mounted on a container before it leaves
+     * the DOM. Optional when `onMount` returns a cleanup or uses its signal.
+     */
+    onUnmount?: (container: Element) => void
     /**
      * Resolve the root element a full Turbo Drive render mounts on.
      * Defaults to `document.body`.
@@ -96,6 +117,15 @@ export interface TurboHandlerOptions {
     frameStreams?: boolean
 }
 
+// What one onMount call left to tear down, when the handler unmounts its container
+interface MountScope {
+    // The permanent elements in the container when onMount ran: its cleanup tears them down too
+    permanent: Element[]
+    cleanup: MountCleanup | null
+    // Created when onMount reads its signal
+    controller: AbortController | null
+}
+
 // One morph in flight: the elements it changes, unmounted before it does and
 // mounted again once it is done, with what it added.
 interface MorphScope {
@@ -115,7 +145,7 @@ interface MorphScope {
  * mounted on turbo:load.
  */
 export class TurboHandler {
-    readonly #onMount: (container: Element) => void
+    readonly #onMount: MountCallback
     readonly #onUnmount: (container: Element) => void
     readonly #getContainer: (document: Document) => Element
     readonly #streamMutations: boolean
@@ -130,6 +160,8 @@ export class TurboHandler {
     #roots = new Set<Element>()
     // The markup of each permanent element before its first mount: the snapshot cache keeps it, not the widgets
     #pristine = new WeakMap<Element, Element>()
+    // The cleanup and signal of each container onMount was called on
+    #scopes = new Map<Element, MountScope>()
     #morph: MorphScope | null = null
     // Stops watching the streams already in the page when the handler started
     #pendingStreams: (() => MutationRecord[]) | null = null
@@ -138,7 +170,7 @@ export class TurboHandler {
 
     constructor(options: TurboHandlerOptions) {
         this.#onMount = options.onMount
-        this.#onUnmount = options.onUnmount
+        this.#onUnmount = options.onUnmount ?? (() => {})
         this.#getContainer = options.getContainer ?? ((document) => document.body)
         this.#streamMutations = options.streamMutations ?? true
         this.#morphMutations = options.morphMutations ?? false
@@ -200,6 +232,7 @@ export class TurboHandler {
         this.#pendingStreams?.()
         this.#pendingStreams = null
         this.#roots = new Set()
+        this.#scopes = new Map()
         this.#started = false
     }
 
@@ -241,7 +274,7 @@ export class TurboHandler {
         if (!this.#isMounted(container)) {
             this.#roots.add(container)
         }
-        aside(container, outermost(kept), this.#onMount)
+        aside(container, outermost(kept), this.#callMount)
     }
 
     // onUnmount on what is mounted in the container: the container itself, or else
@@ -258,8 +291,73 @@ export class TurboHandler {
             for (const element of keptInside) {
                 this.#roots.add(element)
             }
-            aside(target, keptInside, this.#onUnmount)
+            // The cleanup of the target tears down the kept elements it mounted too: mount them again, on their own
+            const remounted = keptInside.filter((element) => this.#isTornDownWith(target, element))
+            aside(target, keptInside, this.#callUnmount)
+            for (const element of remounted) {
+                this.#callMount(element)
+            }
         }
+    }
+
+    // Called with the mounted permanent elements set aside: they are not the container's
+    #callMount = (container: Element): void => {
+        // Mounted again without an unmount: what the last onMount left goes first
+        const previous = this.#scopes.get(container)
+        if (previous) {
+            this.#endScope(container, previous)
+        }
+        const scope: MountScope = { permanent: permanentElements(container), cleanup: null, controller: null }
+        this.#scopes.set(container, scope)
+        const cleanup = this.#onMount(container, {
+            get signal() {
+                scope.controller ??= new AbortController()
+
+                return scope.controller.signal
+            },
+        })
+        if (typeof cleanup === 'function') {
+            scope.cleanup = cleanup
+        }
+    }
+
+    // The scopes of the target and of the containers inside it end first, then onUnmount runs
+    #callUnmount = (target: Element): void => {
+        try {
+            for (const [container, scope] of this.#scopes) {
+                if (container === target || target.contains(container)) {
+                    this.#endScope(container, scope)
+                }
+            }
+        } finally {
+            this.#onUnmount(target)
+        }
+    }
+
+    #endScope(container: Element, scope: MountScope): void {
+        this.#scopes.delete(container)
+        try {
+            scope.controller?.abort()
+        } finally {
+            scope.cleanup?.()
+        }
+    }
+
+    // Whether unmounting the target ends a scope with something to tear down that
+    // mounted the kept element: one of the target or inside it, that had it when it mounted
+    #isTornDownWith(target: Element, element: Element): boolean {
+        for (const [container, scope] of this.#scopes) {
+            if (
+                (scope.cleanup !== null || scope.controller !== null) &&
+                container !== element &&
+                (container === target || target.contains(container)) &&
+                scope.permanent.some((permanent) => permanent === element || element.contains(permanent))
+            ) {
+                return true
+            }
+        }
+
+        return false
     }
 
     // Drop the container and the roots inside it
@@ -278,6 +376,12 @@ export class TurboHandler {
         for (const root of this.#roots) {
             if (!root.isConnected) {
                 this.#roots.delete(root)
+            }
+        }
+        // Gone without an unmount: what they mounted has nothing left to act on
+        for (const [container, scope] of this.#scopes) {
+            if (!container.isConnected) {
+                this.#safe(() => this.#endScope(container, scope))
             }
         }
         this.#mount(this.#getContainer(document))

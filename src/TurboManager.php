@@ -27,12 +27,16 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *
  * Reading the `Turbo-Frame` header flags the request (and the main request), so
  * TurboFrameListener adds `Vary: Turbo-Frame` to responses that depend on it.
+ * Asking whether the request accepts a Turbo Stream flags it the same way, for
+ * `Vary: Accept`.
  */
 final readonly class TurboManager
 {
     public const VARY_ATTRIBUTE = '_turbo_frame_vary';
 
-    private const STREAM_CONTENT_TYPE = 'text/vnd.turbo-stream.html';
+    public const STREAM_VARY_ATTRIBUTE = '_turbo_stream_vary';
+
+    public const STREAM_CONTENT_TYPE = 'text/vnd.turbo-stream.html';
 
     public function __construct(
         private RequestStack $requestStack,
@@ -67,8 +71,25 @@ final readonly class TurboManager
             return false;
         }
 
-        return $headers->has('x-turbo-request-id')
-            || str_contains((string) $headers->get('accept'), self::STREAM_CONTENT_TYPE);
+        return $headers->has('x-turbo-request-id') || $this->acceptsTurboStream();
+    }
+
+    /**
+     * Whether the request accepts a Turbo Stream answer: Turbo asks for one on its
+     * form submissions (a `data-turbo-method` link included) and on `data-turbo-stream`
+     * links. A browser without JavaScript never does: answer it with a redirect.
+     *
+     * A Drive form outside any frame asks for one too. When the answer must leave
+     * the page there, decide on the frame instead (`getTurboFrameId()`).
+     */
+    public function acceptsTurboStream(): bool
+    {
+        $request = $this->getRequest();
+        // A `data-turbo-stream` link is a GET: a shared cache must not serve its stream to a full visit
+        $request?->attributes->set(self::STREAM_VARY_ATTRIBUTE, true);
+        $this->requestStack->getMainRequest()?->attributes->set(self::STREAM_VARY_ATTRIBUTE, true);
+
+        return str_contains((string) $request?->headers->get('accept'), self::STREAM_CONTENT_TYPE);
     }
 
     /**

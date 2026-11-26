@@ -5,6 +5,44 @@ All notable changes to `silarhi/turbo-bundle` (Composer) and `@silarhi/turbo` (n
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Both packages are released from the
 same git tag; since 0.2.1 the npm package version follows that tag.
 
+## [0.12.0] - Unreleased
+
+### Added
+
+- Turbo Stream answers without `symfony/ux-turbo`: `TurboManager::acceptsTurboStream()` tells whether the request takes
+  a stream (a Turbo form submission, a `data-turbo-stream` link), `TurboStreamRenderer::render()` renders a template or
+  one of its blocks with the stream content type, and the `turbo_stream` Twig filter wraps its content in a
+  `<turbo-stream>` of any action, the custom ones that `<twig:Turbo:Stream:*>` doesn't cover included.
+- `TurboStreamCollector` collects Turbo Streams during the request, from any service (`append()`, `replace()`,
+  `remove()`, `refresh()`, `action()` for a custom one…), and `TurboStreamListener` appends them to the Turbo Stream
+  response of the request, whatever renders it. `createResponse()` answers them alone. Both get the markup of the
+  streams from the `TurboStreamBuilder` service, which the `turbo_stream` Twig helpers share. `SilarhiTurboBundle`
+  registers the three of them.
+- The `turbo_refreshes_with()`, `turbo_exempts_page_from_cache()`, `turbo_exempts_page_from_preview()` and
+  `turbo_page_requires_reload()` Twig functions render the `<meta>` tags that set how Turbo 8 refreshes, caches and
+  visits a page.
+- With `kernel.debug` on, `TurboFrameMissingListener` logs a warning when the HTML answer to a frame request has no
+  `<turbo-frame>` of that id, which the browser shows as "Content missing".
+- `TurboAssertionsTrait` gets `assertNoTurboStream()`, `assertTurboStreamCount()`, `assertTurboStreamContains()` and
+  `assertTurboFrame()`.
+- `onMount` can return a cleanup function, and gets a `{ signal }` as its second argument: `TurboHandler` calls the
+  cleanup and aborts the signal when it unmounts that container, before `onUnmount`, which is now optional. A permanent
+  element that a container's cleanup tears down is mounted again on its own. The `MountContext` and `MountCleanup`
+  types are exported.
+
+### Changed
+
+- A function that `onMount` returns is now called when the container unmounts: an `onMount` that returned the destroy
+  function of a library by chance now has it called, on top of `onUnmount`.
+- Twig 3.8 is now the minimum version when Twig is installed (`conflict` with `twig/twig` <3.8), the lowest one
+  `symfony/ux-twig-component` 2.20 allows.
+
+### Fixed
+
+- A response that depends on `TurboManager::acceptsTurboStream()` (or `isTurboRequest()`) gets `Vary: Accept`, as one
+  that reads `Turbo-Frame` gets `Vary: Turbo-Frame`. A `data-turbo-stream` link is a `GET`: a shared cache could serve
+  its stream answer to a full visit of the same URL, or the page to the link.
+
 ## [0.11.0] - 2026-11-09
 
 ### Changed
@@ -271,6 +309,7 @@ First tagged release. (`@silarhi/turbo@0.1.0` was published to npm ahead of it, 
   a matching Turbo Frame.
 
 [Unreleased]: https://github.com/silarhi/turbo-bundle/compare/v0.8.3...HEAD
+[0.12.0]: https://github.com/silarhi/turbo-bundle/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/silarhi/turbo-bundle/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/silarhi/turbo-bundle/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/silarhi/turbo-bundle/compare/v0.8.3...v0.9.0

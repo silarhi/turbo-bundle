@@ -96,6 +96,83 @@ class TurboAssertionsTraitTest extends TestCase
         self::assertTurboStream(new Response(''), 'remove');
     }
 
+    public function testAssertNoTurboStream(): void
+    {
+        $response = new Response(self::STREAMS);
+
+        self::assertNoTurboStream(new Response('<p>Saved</p>'));
+        self::assertNoTurboStream($response, 'append');
+        self::assertNoTurboStream($response, 'replace', 'project_2');
+    }
+
+    public function testAssertNoTurboStreamFailsOnAMatchingStream(): void
+    {
+        $this->expectException(AssertionFailedError::class);
+        $this->expectExceptionMessage('Failed asserting that the response has no "replace project_1" Turbo Stream. Found: "replace project_1".');
+
+        self::assertNoTurboStream(new Response(self::STREAMS), 'replace', 'project_1');
+    }
+
+    public function testAssertNoTurboStreamFailsOnAnyStream(): void
+    {
+        $this->expectException(AssertionFailedError::class);
+        $this->expectExceptionMessage('Failed asserting that the response has no Turbo Stream. Found: "replace project_1", "remove .notification", "refresh".');
+
+        self::assertNoTurboStream(new Response(self::STREAMS));
+    }
+
+    public function testAssertTurboStreamCount(): void
+    {
+        self::assertTurboStreamCount(new Response(self::STREAMS), 3);
+        self::assertTurboStreamCount(new Response(''), 0);
+
+        $this->expectException(AssertionFailedError::class);
+        $this->expectExceptionMessage('Failed asserting that the response has 2 Turbo Stream(s). Found: "replace project_1", "remove .notification", "refresh".');
+        self::assertTurboStreamCount(new Response(self::STREAMS), 2);
+    }
+
+    public function testAssertTurboStreamContainsMatchesTheHtmlOrTheText(): void
+    {
+        $response = new Response(self::STREAMS);
+
+        self::assertTurboStreamContains($response, 'replace', 'project_1', 'Café');
+        self::assertTurboStreamContains($response, 'replace', 'project_1', 'id="project_1"');
+        self::assertTurboStreamContains($response, 'replace', null, 'Café');
+    }
+
+    public function testAssertTurboStreamContainsFailsOnAnotherContent(): void
+    {
+        $this->expectException(AssertionFailedError::class);
+        $this->expectExceptionMessage('Failed asserting that the "replace project_1" Turbo Stream contains "Saved". Its content: "Café".');
+
+        self::assertTurboStreamContains(new Response(self::STREAMS), 'replace', 'project_1', 'Saved');
+    }
+
+    public function testAssertTurboStreamContainsFailsWithoutTheStream(): void
+    {
+        $this->expectException(AssertionFailedError::class);
+        $this->expectExceptionMessage('Failed asserting that the response has a "append flash" Turbo Stream.');
+
+        self::assertTurboStreamContains(new Response(self::STREAMS), 'append', 'flash', 'Saved');
+    }
+
+    public function testAssertTurboFrame(): void
+    {
+        self::assertTurboFrame(new Response('<html><body><turbo-frame id="modal"><form></form></turbo-frame></body></html>'), 'modal');
+
+        $this->expectException(AssertionFailedError::class);
+        $this->expectExceptionMessage('Failed asserting that the response has a <turbo-frame id="modal">. Found: "main".');
+        self::assertTurboFrame(new Response('<turbo-frame id="main"></turbo-frame>'), 'modal');
+    }
+
+    public function testAssertTurboFrameFailsOnAResponseWithoutFrames(): void
+    {
+        $this->expectException(AssertionFailedError::class);
+        $this->expectExceptionMessage('Found: none.');
+
+        self::assertTurboFrame(new Response(''), 'modal');
+    }
+
     public function testAssertTurboLocationOnAConvertedFrameRedirect(): void
     {
         $request = Request::create('/projects/1', 'POST', server: self::getTurboFrameHeaders('modal') + self::getTurboStreamHeaders());

@@ -11,6 +11,13 @@ import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vite
 import { TurboHandler } from '../src/index'
 
 type Lifecycle = (container: Element) => void
+
+// The mocks record the container alone: the context onMount gets is tested on its own
+const withoutContext =
+    (mock: Mock<Lifecycle>) =>
+    (container: Element): void => {
+        mock(container)
+    }
 type Render = (currentElement: Element, newElement: Element) => unknown
 
 interface RenderDetail {
@@ -69,7 +76,7 @@ describe('TurboHandler', () => {
         document.body.innerHTML = ''
         onMount = vi.fn<Lifecycle>()
         onUnmount = vi.fn<Lifecycle>()
-        handler = new TurboHandler({ onMount, onUnmount })
+        handler = new TurboHandler({ onMount: withoutContext(onMount), onUnmount })
         handler.start()
     })
 
@@ -320,7 +327,7 @@ describe('TurboHandler', () => {
     it('follows a Turbo-Location redirect and prevents the default frame swap', () => {
         const onRedirect = vi.fn<(url: string) => void>()
         handler.stop()
-        handler = new TurboHandler({ onMount, onUnmount, onRedirect })
+        handler = new TurboHandler({ onMount: withoutContext(onMount), onUnmount, onRedirect })
         handler.start()
 
         const headers = new Headers({ 'Turbo-Location': '/next' })
@@ -333,7 +340,7 @@ describe('TurboHandler', () => {
     it('lets a response without Turbo-Location through', () => {
         const onRedirect = vi.fn<(url: string) => void>()
         handler.stop()
-        handler = new TurboHandler({ onMount, onUnmount, onRedirect })
+        handler = new TurboHandler({ onMount: withoutContext(onMount), onUnmount, onRedirect })
         handler.start()
 
         const event = fire('turbo:before-fetch-response', { fetchResponse: { response: { headers: new Headers() } } })
@@ -381,12 +388,12 @@ describe('TurboHandler', () => {
         handler.start()
 
         fire('turbo:load')
-        expect(wide).toHaveBeenCalledWith(document.body)
+        expect(wide.mock.calls[0]?.[0]).toBe(document.body)
     })
 
     it('visits the response of a missing frame when visitOnFrameMissing is enabled', () => {
         handler.stop()
-        handler = new TurboHandler({ onMount, onUnmount, visitOnFrameMissing: true })
+        handler = new TurboHandler({ onMount: withoutContext(onMount), onUnmount, visitOnFrameMissing: true })
         handler.start()
 
         const response = new Response('<html></html>')
@@ -438,7 +445,7 @@ describe('TurboHandler', () => {
         handler.stop()
         const root = document.createElement('main')
         document.body.appendChild(root)
-        handler = new TurboHandler({ onMount, onUnmount, getContainer: () => root })
+        handler = new TurboHandler({ onMount: withoutContext(onMount), onUnmount, getContainer: () => root })
         handler.start()
 
         fire('turbo:load')
@@ -467,7 +474,7 @@ describe('TurboHandler', () => {
 
     it('ignores lifecycle events that do not target an element', () => {
         handler.stop()
-        handler = new TurboHandler({ onMount, onUnmount, morphMutations: true })
+        handler = new TurboHandler({ onMount: withoutContext(onMount), onUnmount, morphMutations: true })
         handler.start()
 
         // Dispatched on the document itself: there is no frame / morphed element to act on
@@ -514,7 +521,7 @@ describe('TurboHandler', () => {
 
         it('runs the streams living outside any frame', async () => {
             handler.stop()
-            handler = new TurboHandler({ onMount, onUnmount, frameStreams: true })
+            handler = new TurboHandler({ onMount: withoutContext(onMount), onUnmount, frameStreams: true })
             handler.start()
 
             renderFrame('crud-form', RESPONSE)
@@ -527,7 +534,7 @@ describe('TurboHandler', () => {
 
         it('does nothing without a response body', async () => {
             handler.stop()
-            handler = new TurboHandler({ onMount, onUnmount, frameStreams: true })
+            handler = new TurboHandler({ onMount: withoutContext(onMount), onUnmount, frameStreams: true })
             handler.start()
 
             renderFrame('crud-form', undefined)
@@ -603,7 +610,7 @@ describe('TurboHandler', () => {
 
         it('leaves stream rendering untouched when streamMutations is false', () => {
             handler.stop()
-            handler = new TurboHandler({ onMount, onUnmount, streamMutations: false })
+            handler = new TurboHandler({ onMount: withoutContext(onMount), onUnmount, streamMutations: false })
             handler.start()
 
             const original = vi.fn(async () => {})
@@ -665,7 +672,7 @@ describe('TurboHandler', () => {
 
         it('unmounts the target of a replace morph that changes before the render, with morphMutations', async () => {
             handler.stop()
-            handler = new TurboHandler({ onMount, onUnmount, morphMutations: true })
+            handler = new TurboHandler({ onMount: withoutContext(onMount), onUnmount, morphMutations: true })
             handler.start()
             load()
             const target = document.createElement('p')
@@ -817,7 +824,7 @@ describe('TurboHandler', () => {
             beforeEach(() => {
                 handler.stop()
                 window.Turbo = { visit: vi.fn(), PageSnapshot }
-                handler = new TurboHandler({ onMount, onUnmount })
+                handler = new TurboHandler({ onMount: withoutContext(onMount), onUnmount })
                 handler.start()
             })
 
@@ -943,7 +950,7 @@ describe('TurboHandler', () => {
                 )
             }
             document.body.innerHTML = '<ul id="list"></ul><turbo-stream target="list"></turbo-stream>'
-            handler = new TurboHandler({ onMount, onUnmount })
+            handler = new TurboHandler({ onMount: withoutContext(onMount), onUnmount })
             handler.start()
             const item = document.createElement('li')
 
@@ -958,7 +965,7 @@ describe('TurboHandler', () => {
     describe('morph mutations (opt-in)', () => {
         function startMorphHandler(): void {
             handler.stop()
-            handler = new TurboHandler({ onMount, onUnmount, morphMutations: true })
+            handler = new TurboHandler({ onMount: withoutContext(onMount), onUnmount, morphMutations: true })
             handler.start()
             load()
         }
@@ -1254,6 +1261,155 @@ describe('TurboHandler', () => {
             await morph(el, '<p data-count="1"></p>')
             expect(onMount).not.toHaveBeenCalled()
             expect(onUnmount).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('cleanup and signal of onMount', () => {
+        const calls: string[] = []
+        const signals: AbortSignal[] = []
+
+        function name(container: Element): string {
+            return container.id || container.tagName.toLowerCase()
+        }
+
+        beforeEach(() => {
+            calls.length = 0
+            signals.length = 0
+            handler.stop()
+            handler = new TurboHandler({
+                onMount: (container, { signal }) => {
+                    calls.push(`mount ${name(container)}`)
+                    signals.push(signal)
+
+                    return () => calls.push(`cleanup ${name(container)}`)
+                },
+                onUnmount: (container) => calls.push(`unmount ${name(container)}`),
+            })
+            handler.start()
+        })
+
+        // A Drive render that keeps the live player, as Turbo does: a placeholder in the new body during the render
+        function keepPlayer(live: Element, newBody: Element): void {
+            const event = fire<RenderDetail>('turbo:before-render', { newBody, render: swapBody })
+            const placeholder = document.createElement('meta')
+            newBody.querySelector('#player')?.replaceWith(placeholder)
+            event.detail.render?.(document.body, newBody)
+            placeholder.replaceWith(live)
+        }
+
+        function frameWithId(id: string): Element {
+            const frame = turboFrame()
+            frame.id = id
+
+            return frame
+        }
+
+        it('runs the cleanup when the container unmounts, before onUnmount', () => {
+            const frame = frameWithId('frame')
+            frameRender(frame, document.createElement('turbo-frame'))
+            frameRender(frame, document.createElement('turbo-frame'))
+
+            expect(calls).toEqual(['mount frame', 'cleanup frame', 'unmount frame', 'mount frame'])
+        })
+
+        it('aborts the signal when the container unmounts, and gives each mount its own', () => {
+            const frame = frameWithId('frame')
+            frameRender(frame, document.createElement('turbo-frame'))
+            const clicked = vi.fn()
+            document.addEventListener('click', clicked, { signal: signals[0] })
+
+            frameRender(frame, document.createElement('turbo-frame'))
+            document.dispatchEvent(new Event('click'))
+
+            expect(signals.map((signal) => signal.aborted)).toEqual([true, false])
+            expect(clicked).not.toHaveBeenCalled()
+        })
+
+        it('needs no onUnmount', () => {
+            handler.stop()
+            const cleanup = vi.fn()
+            handler = new TurboHandler({ onMount: () => cleanup })
+            handler.start()
+            const frame = turboFrame()
+
+            frameRender(frame, document.createElement('turbo-frame'))
+            frameRender(frame, document.createElement('turbo-frame'))
+            expect(cleanup).toHaveBeenCalledTimes(1)
+        })
+
+        it('ignores what onMount returns when it is not a function', () => {
+            handler.stop()
+            handler = new TurboHandler({ onMount: () => 42 as unknown as undefined })
+            handler.start()
+            const frame = turboFrame()
+
+            frameRender(frame, document.createElement('turbo-frame'))
+            expect(() => frameRender(frame, document.createElement('turbo-frame'))).not.toThrow()
+        })
+
+        it('ends the scopes inside the container it unmounts, and leaves the others', () => {
+            const kept = frameWithId('kept')
+            const frame = frameWithId('frame')
+            fire('turbo:load')
+            frameRender(frame, document.createElement('turbo-frame'))
+            calls.length = 0
+
+            const newBody = document.createElement('body')
+            driveRender(newBody)
+
+            expect(calls).toEqual(['cleanup body', 'cleanup frame', 'unmount body', 'mount body'])
+            expect(calls).not.toContain(`cleanup ${kept.id}`)
+        })
+
+        it('mounts a permanent element again, on its own, when the cleanup of its container tore it down', () => {
+            document.body.innerHTML = '<div id="player" data-turbo-permanent></div>'
+            fire('turbo:load')
+            const live = document.getElementById('player') as Element
+            calls.length = 0
+
+            // Turbo keeps the player: the new body gets the live element in place of its copy
+            const render = (): void => {
+                const newBody = document.createElement('body')
+                newBody.innerHTML = '<div id="player" data-turbo-permanent></div>'
+                keepPlayer(live, newBody)
+            }
+            render()
+            expect(calls).toEqual(['cleanup body', 'unmount body', 'mount player', 'mount body'])
+
+            // From then on the player has its own scope: the next body leaves it alone
+            calls.length = 0
+            render()
+            expect(calls).toEqual(['cleanup body', 'unmount body', 'mount body'])
+        })
+
+        it('leaves a permanent element mounted when onMount left nothing to tear down', () => {
+            handler.stop()
+            const mounted: string[] = []
+            handler = new TurboHandler({
+                onMount: (container) => {
+                    mounted.push(name(container))
+                },
+            })
+            handler.start()
+            document.body.innerHTML = '<div id="player" data-turbo-permanent></div>'
+            fire('turbo:load')
+            const live = document.getElementById('player') as Element
+
+            const newBody = document.createElement('body')
+            newBody.innerHTML = '<div id="player" data-turbo-permanent></div>'
+            keepPlayer(live, newBody)
+
+            expect(mounted).toEqual(['body', 'body'])
+        })
+
+        it('ends the scope of a container that left the page without an unmount on the next turbo:load', () => {
+            const frame = frameWithId('frame')
+            frameRender(frame, document.createElement('turbo-frame'))
+            frame.remove()
+
+            fire('turbo:load')
+            expect(calls).toEqual(['mount frame', 'cleanup frame', 'mount body'])
+            expect(signals[0]?.aborted).toBe(true)
         })
     })
 })

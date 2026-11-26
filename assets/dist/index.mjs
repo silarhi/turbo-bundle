@@ -250,13 +250,14 @@ var TurboHandler = class {
 	#bindings = [];
 	#roots = /* @__PURE__ */ new Set();
 	#pristine = /* @__PURE__ */ new WeakMap();
+	#scopes = /* @__PURE__ */ new Map();
 	#morph = null;
 	#pendingStreams = null;
 	#unpatchSessionVisit = null;
 	#unpatchSnapshotClone = null;
 	constructor(options) {
 		this.#onMount = options.onMount;
-		this.#onUnmount = options.onUnmount;
+		this.#onUnmount = options.onUnmount ?? (() => {});
 		this.#getContainer = options.getContainer ?? ((document) => document.body);
 		this.#streamMutations = options.streamMutations ?? true;
 		this.#morphMutations = options.morphMutations ?? false;
@@ -319,6 +320,7 @@ var TurboHandler = class {
 		this.#pendingStreams?.();
 		this.#pendingStreams = null;
 		this.#roots = /* @__PURE__ */ new Set();
+		this.#scopes = /* @__PURE__ */ new Map();
 		this.#started = false;
 	}
 	#patchTurbo = () => {
@@ -340,7 +342,7 @@ var TurboHandler = class {
 		for (const element of permanentElements(container)) if (!this.#pristine.has(element) && !within(element, keptSet)) this.#pristine.set(element, element.cloneNode(true));
 		this.#forget(container);
 		if (!this.#isMounted(container)) this.#roots.add(container);
-		aside(container, outermost(kept), this.#onMount);
+		aside(container, outermost(kept), this.#callMount);
 	}
 	#unmount(container, kept = [], mounted = this.#isMounted(container)) {
 		const keptSet = new Set(kept);
@@ -349,14 +351,51 @@ var TurboHandler = class {
 			const keptInside = outermost(kept.filter((element) => element !== target && target.contains(element)));
 			this.#forget(target);
 			for (const element of keptInside) this.#roots.add(element);
-			aside(target, keptInside, this.#onUnmount);
+			const remounted = keptInside.filter((element) => this.#isTornDownWith(target, element));
+			aside(target, keptInside, this.#callUnmount);
+			for (const element of remounted) this.#callMount(element);
 		}
+	}
+	#callMount = (container) => {
+		const previous = this.#scopes.get(container);
+		if (previous) this.#endScope(container, previous);
+		const scope = {
+			permanent: permanentElements(container),
+			cleanup: null,
+			controller: null
+		};
+		this.#scopes.set(container, scope);
+		const cleanup = this.#onMount(container, { get signal() {
+			scope.controller ??= new AbortController();
+			return scope.controller.signal;
+		} });
+		if (typeof cleanup === "function") scope.cleanup = cleanup;
+	};
+	#callUnmount = (target) => {
+		try {
+			for (const [container, scope] of this.#scopes) if (container === target || target.contains(container)) this.#endScope(container, scope);
+		} finally {
+			this.#onUnmount(target);
+		}
+	};
+	#endScope(container, scope) {
+		this.#scopes.delete(container);
+		try {
+			scope.controller?.abort();
+		} finally {
+			scope.cleanup?.();
+		}
+	}
+	#isTornDownWith(target, element) {
+		for (const [container, scope] of this.#scopes) if ((scope.cleanup !== null || scope.controller !== null) && container !== element && (container === target || target.contains(container)) && scope.permanent.some((permanent) => permanent === element || element.contains(permanent))) return true;
+		return false;
 	}
 	#forget(container) {
 		for (const root of this.#roots) if (container.contains(root)) this.#roots.delete(root);
 	}
 	#onLoad = () => {
 		for (const root of this.#roots) if (!root.isConnected) this.#roots.delete(root);
+		for (const [container, scope] of this.#scopes) if (!container.isConnected) this.#safe(() => this.#endScope(container, scope));
 		this.#mount(this.#getContainer(document));
 	};
 	#onBeforeCache = () => {

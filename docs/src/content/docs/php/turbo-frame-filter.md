@@ -110,3 +110,18 @@ the content of the frame that requested it instead of triggering Turbo's "Conten
 ```twig
 <turbo-frame id="{{ turbo_frame_id() }}">…</turbo-frame>
 ```
+
+## Finding a missing frame
+
+When the answer to a frame request has no `<turbo-frame>` of that id, the browser shows "Content missing" in the frame,
+and its console says little more. With `kernel.debug` on, `SilarhiTurboBundle` registers
+`TurboFrameMissingListener`, which logs a warning on the server instead:
+
+```text
+The response to the "modal" Turbo Frame has no <turbo-frame id="modal">: the browser shows "Content missing" in the frame.
+```
+
+It checks the HTML answers that Turbo renders in the frame: a success or a client error (an invalid form answers
+`422`). It leaves redirects, `204`s, Turbo Stream answers, other content types and server errors alone, and reads the
+`Turbo-Frame` header itself, so the response does not vary on it. In tests,
+[`assertTurboFrame()`](/php/testing/#assertions) checks the same thing.

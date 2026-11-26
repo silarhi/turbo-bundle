@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Silarhi\TurboBundle;
 
 use Silarhi\TurboBundle\EventListener\TurboFrameListener;
+use Silarhi\TurboBundle\EventListener\TurboFrameMissingListener;
+use Silarhi\TurboBundle\EventListener\TurboStreamListener;
 use Silarhi\TurboBundle\Twig\TurboExtension;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -27,9 +29,12 @@ use Twig\Extension\AbstractExtension;
 /**
  * Optional zero-config wiring for full Symfony applications.
  *
- * Register it in `config/bundles.php` to get TurboManager + TurboFrameListener
- * (and, when Twig is installed, the `turbo_frame` filter). Projects without the
- * framework can skip this class entirely and instantiate the classes directly.
+ * Register it in `config/bundles.php` to get TurboManager, TurboFrameListener,
+ * TurboStreamCollector and its listener (and, when Twig is installed, the Twig
+ * extension and TurboStreamRenderer). With `kernel.debug` on, it also logs the
+ * frame answers without their `<turbo-frame>` (TurboFrameMissingListener).
+ * Projects without the framework can skip this class entirely and instantiate
+ * the classes directly.
  *
  * Configuration (default values shown):
  *
@@ -40,6 +45,15 @@ use Twig\Extension\AbstractExtension;
  */
 final class SilarhiTurboBundle extends AbstractBundle
 {
+    public function prependExtension(ContainerConfigurator $configurator, ContainerBuilder $container): void
+    {
+        if ($container->hasExtension('twig')) {
+            $container->prependExtensionConfig('twig', [
+                'paths' => [__DIR__ . '/../templates' => 'Turbo'],
+            ]);
+        }
+    }
+
     public function configure(DefinitionConfigurator $definition): void
     {
         $definition->rootNode()
@@ -71,10 +85,28 @@ final class SilarhiTurboBundle extends AbstractBundle
             ->args([service(TurboManager::class), $config['follow_delete_redirects']])
             ->tag('kernel.event_subscriber');
 
+        $services->set(TurboStreamBuilder::class);
+
+        $services->set(TurboStreamCollector::class)
+            ->autowire();
+
+        $services->set(TurboStreamListener::class)
+            ->args([service(TurboStreamCollector::class)])
+            ->tag('kernel.event_subscriber');
+
+        if ($builder->hasParameter('kernel.debug') && true === $builder->getParameter('kernel.debug')) {
+            $services->set(TurboFrameMissingListener::class)
+                ->args([service('logger')->nullOnInvalid()])
+                ->tag('kernel.event_subscriber');
+        }
+
         if (class_exists(AbstractExtension::class)) {
             $services->set(TurboExtension::class)
-                ->args([service(TurboManager::class), $config['base_template']])
+                ->args([service(TurboManager::class), $config['base_template'], service(TurboStreamBuilder::class)])
                 ->tag('twig.extension');
+
+            $services->set(TurboStreamRenderer::class)
+                ->args([service('twig')]);
         }
     }
 }

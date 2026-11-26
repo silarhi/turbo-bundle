@@ -2,7 +2,7 @@
 title: Testing
 description: Send the headers of Turbo requests and assert Turbo Stream and Turbo-Location responses in your functional tests.
 sidebar:
-    order: 4
+    order: 6
 ---
 
 `Silarhi\TurboBundle\Test\TurboAssertionsTrait` gives your PHPUnit tests the headers Turbo sends and assertions on the
@@ -37,7 +37,7 @@ final class ProjectControllerTest extends WebTestCase
 ```
 
 The assertions take the response to check, so they also work in a plain `TestCase`, with a response from an
-`HttpKernel` or built by hand. They need `phpunit/phpunit`, and the `dom` extension for `assertTurboStream()`.
+`HttpKernel` or built by hand. They need `phpunit/phpunit`, and the `dom` extension for the stream and frame assertions.
 
 ## Request headers
 
@@ -57,13 +57,26 @@ server: self::getTurboFrameHeaders('modal') + self::getTurboStreamHeaders()
 
 ## Assertions
 
-| Assertion                                               | Passes when                                                                                                                        |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `assertTurboStreamResponse($response)`                  | the `Content-Type` is `text/vnd.turbo-stream.html`                                                                                 |
-| `assertTurboStream($response, $action, $target = null)` | the response has a `<turbo-stream>` with this `action`, and this `target` or `targets` when given                                  |
-| `assertTurboLocation($response, $expectedUrl)`          | the response is the `204` with a `Turbo-Location` that [`TurboFrameListener`](/php/frame-redirects/) answers instead of a redirect |
+| Assertion                                                           | Passes when                                                                                                                        |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `assertTurboStreamResponse($response)`                              | the `Content-Type` is `text/vnd.turbo-stream.html`                                                                                 |
+| `assertTurboStream($response, $action, $target = null)`             | the response has a `<turbo-stream>` with this `action`, and this `target` or `targets` when given                                  |
+| `assertNoTurboStream($response, $action = null, $target = null)`    | the response has no `<turbo-stream>`, or none with this `action` (and this `target` or `targets` when given)                       |
+| `assertTurboStreamCount($response, $expectedCount)`                 | the response has this number of `<turbo-stream>` elements                                                                          |
+| `assertTurboStreamContains($response, $action, $target, $expected)` | a matching `<turbo-stream>` has `$expected` in the HTML or the text of its `<template>` (`$target` may be `null`)                  |
+| `assertTurboFrame($response, $frameId)`                             | the response has a `<turbo-frame>` of this id: without it, Turbo shows "Content missing" in the frame                              |
+| `assertTurboLocation($response, $expectedUrl)`                      | the response is the `204` with a `Turbo-Location` that [`TurboFrameListener`](/php/frame-redirects/) answers instead of a redirect |
 
-`assertTurboStream()` reads the streams whatever the content type, as a frame response can carry
+```php
+$client->request('GET', '/projects/1/edit', server: self::getTurboFrameHeaders('modal'));
+self::assertTurboFrame($client->getResponse(), 'modal');
+
+$client->submitForm('Save', ['project[name]' => 'Renamed'], serverParameters: self::getTurboFrameHeaders('modal') + self::getTurboStreamHeaders());
+self::assertTurboStreamContains($client->getResponse(), 'replace', 'project_1', 'Renamed');
+self::assertNoTurboStream($client->getResponse(), 'append', 'flash-messages');
+```
+
+The stream assertions read the streams whatever the content type, as a frame response can carry
 [streams outside its frame](/javascript/frame-streams/). On failure, it lists the streams it found:
 
 ```text

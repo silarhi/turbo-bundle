@@ -1,0 +1,3 @@
+{%- props action, target = null, targets = null -%}
+{%- set content -%}{% block content %}{% endblock %}{%- endset -%}
+{{- turbo_stream(action, target, content, targets, attributes.all) -}}

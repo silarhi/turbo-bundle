@@ -260,6 +260,30 @@ class TurboFrameListenerTest extends TestCase
         self::assertSame(['Turbo-Frame'], $response->getVary());
     }
 
+    public function testResponseThatAskedForAStreamVariesOnAccept(): void
+    {
+        // A `data-turbo-stream` link: the same GET answers a stream or the full page
+        $request = new Request();
+        $request->headers->set('Accept', 'text/vnd.turbo-stream.html, text/html, application/xhtml+xml');
+        $stack = new RequestStack();
+        $stack->push($request);
+        self::assertTrue((new TurboManager($stack))->acceptsTurboStream());
+
+        $response = $this->dispatch($request, new Response('<turbo-stream></turbo-stream>', Response::HTTP_OK, ['Vary' => 'Accept-Encoding']))->getResponse();
+        self::assertSame(['Accept-Encoding', 'Accept'], $response->getVary());
+    }
+
+    public function testFullPageThatAskedForAStreamVariesOnAccept(): void
+    {
+        $request = new Request();
+        $stack = new RequestStack();
+        $stack->push($request);
+        self::assertFalse((new TurboManager($stack))->acceptsTurboStream());
+
+        $response = $this->dispatch($request, new Response('page'))->getResponse();
+        self::assertSame(['Accept'], $response->getVary());
+    }
+
     public function testResponseThatNeverReadTheFrameHeaderDoesNotVaryOnIt(): void
     {
         $request = new Request();
