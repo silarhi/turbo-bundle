@@ -12,6 +12,7 @@ the container) and instantiate the classes:
 
 ```php
 use Silarhi\TurboBundle\EventListener\TurboFrameListener;
+use Silarhi\TurboBundle\EventListener\TurboFrameMissingListener;
 use Silarhi\TurboBundle\EventListener\TurboStreamListener;
 use Silarhi\TurboBundle\TurboManager;
 use Silarhi\TurboBundle\TurboStreamBuilder;
@@ -26,6 +27,9 @@ $dispatcher->addSubscriber(new TurboFrameListener($turboManager));
 $turboStreamBuilder = new TurboStreamBuilder();
 $turboStreams = new TurboStreamCollector($requestStack, $turboStreamBuilder);
 $dispatcher->addSubscriber(new TurboStreamListener($turboStreams));
+
+// Optional, in development: log the frame answers without their <turbo-frame>
+$dispatcher->addSubscriber(new TurboFrameMissingListener($logger));
 
 // Optional: the turbo_frame Twig filter (requires twig/twig).
 // The second argument is the base template the filter falls back to (default: 'base-frame.html.twig'),

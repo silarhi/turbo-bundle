@@ -18,6 +18,7 @@ use function dirname;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Silarhi\TurboBundle\EventListener\TurboFrameListener;
+use Silarhi\TurboBundle\EventListener\TurboFrameMissingListener;
 use Silarhi\TurboBundle\EventListener\TurboStreamListener;
 use Silarhi\TurboBundle\SilarhiTurboBundle;
 use Silarhi\TurboBundle\TurboManager;
@@ -157,6 +158,17 @@ class SilarhiTurboBundleTest extends TestCase
         self::assertEquals([new Reference(TurboStreamCollector::class)], $definition->getArguments());
     }
 
+    public function testRegistersTheFrameMissingListenerInDebugOnly(): void
+    {
+        self::assertFalse($this->loadExtension([])->hasDefinition(TurboFrameMissingListener::class));
+
+        $container = $this->containerBuilder(debug: true);
+        $this->extension()->load([], $container);
+        $definition = $container->getDefinition(TurboFrameMissingListener::class);
+        self::assertTrue($definition->hasTag('kernel.event_subscriber'));
+        self::assertEquals([new Reference('logger', ContainerBuilder::NULL_ON_INVALID_REFERENCE)], $definition->getArguments());
+    }
+
     public function testCompiledContainerAppendsCollectedStreamsToAStreamResponse(): void
     {
         $container = $this->compiledContainer([]);
@@ -292,11 +304,11 @@ class SilarhiTurboBundleTest extends TestCase
      * Mirrors the kernel parameters a real Kernel sets: Symfony 6.4 reads
      * `kernel.environment` and `kernel.build_dir` when loading an AbstractBundle extension.
      */
-    private function containerBuilder(): ContainerBuilder
+    private function containerBuilder(bool $debug = false): ContainerBuilder
     {
         return new ContainerBuilder(new ParameterBag([
             'kernel.environment' => 'test',
-            'kernel.debug' => false,
+            'kernel.debug' => $debug,
             'kernel.build_dir' => sys_get_temp_dir() . '/silarhi_turbo_bundle_test',
             'kernel.cache_dir' => sys_get_temp_dir() . '/silarhi_turbo_bundle_test',
             'kernel.project_dir' => dirname(__DIR__),

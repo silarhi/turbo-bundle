@@ -65,6 +65,16 @@ Stream response of the main request, on `kernel.response`.
 public function __construct(TurboStreamCollector $turboStreams)
 ```
 
+## `TurboFrameMissingListener`
+
+`Silarhi\TurboBundle\EventListener\TurboFrameMissingListener` logs a warning, on `kernel.response`, when the HTML
+answer to a frame request has no `<turbo-frame>` of that id ([Finding a missing frame](/php/turbo-frame-filter/#finding-a-missing-frame)).
+Without a logger it does nothing. `SilarhiTurboBundle` registers it when `kernel.debug` is on.
+
+```php
+public function __construct(?LoggerInterface $logger)
+```
+
 ## `TurboExtension`
 
 `Silarhi\TurboBundle\Twig\TurboExtension` is a classic Twig `AbstractExtension` (not the `#[AsTwigFilter]` attribute),
@@ -152,5 +162,5 @@ is `public static`.
 
 `Silarhi\TurboBundle\SilarhiTurboBundle` is the optional bundle: it defines the
 [configuration](/reference/configuration/) and registers `TurboManager`, `TurboFrameListener`, `TurboStreamCollector`
-and `TurboStreamListener`, plus `TurboExtension` and
+and `TurboStreamListener`, `TurboFrameMissingListener` when `kernel.debug` is on, plus `TurboExtension` and
 `TurboStreamRenderer` when Twig is installed ([registered services](/reference/configuration/#registered-services)).

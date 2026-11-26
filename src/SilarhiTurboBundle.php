@@ -16,6 +16,7 @@ namespace Silarhi\TurboBundle;
 use function dirname;
 
 use Silarhi\TurboBundle\EventListener\TurboFrameListener;
+use Silarhi\TurboBundle\EventListener\TurboFrameMissingListener;
 use Silarhi\TurboBundle\EventListener\TurboStreamListener;
 use Silarhi\TurboBundle\Twig\TurboExtension;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
@@ -32,7 +33,8 @@ use Twig\Extension\AbstractExtension;
  *
  * Register it in `config/bundles.php` to get TurboManager, TurboFrameListener,
  * TurboStreamCollector and its listener (and, when Twig is installed, the Twig
- * extension and TurboStreamRenderer).
+ * extension and TurboStreamRenderer). With `kernel.debug` on, it also logs the
+ * frame answers without their `<turbo-frame>` (TurboFrameMissingListener).
  * Projects without the framework can skip this class entirely and instantiate
  * the classes directly.
  *
@@ -93,6 +95,12 @@ final class SilarhiTurboBundle extends AbstractBundle
         $services->set(TurboStreamListener::class)
             ->args([service(TurboStreamCollector::class)])
             ->tag('kernel.event_subscriber');
+
+        if ($builder->hasParameter('kernel.debug') && true === $builder->getParameter('kernel.debug')) {
+            $services->set(TurboFrameMissingListener::class)
+                ->args([service('logger')->nullOnInvalid()])
+                ->tag('kernel.event_subscriber');
+        }
 
         if (class_exists(AbstractExtension::class)) {
             $services->set(TurboExtension::class)

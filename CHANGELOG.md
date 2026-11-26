@@ -36,6 +36,8 @@ same git tag; since 0.2.1 the npm package version follows that tag.
 - The `turbo_refreshes_with()`, `turbo_exempts_page_from_cache()`, `turbo_exempts_page_from_preview()` and
   `turbo_page_requires_reload()` Twig functions render the `<meta>` tags that set how Turbo 8 refreshes, caches and
   visits a page.
+- With `kernel.debug` on, `TurboFrameMissingListener` logs a warning when the HTML answer to a frame request has no
+  `<turbo-frame>` of that id, which the browser shows as "Content missing".
 
 ### Changed
 
