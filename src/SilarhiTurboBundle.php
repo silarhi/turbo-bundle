@@ -16,6 +16,7 @@ namespace Silarhi\TurboBundle;
 use function dirname;
 
 use Silarhi\TurboBundle\EventListener\TurboFrameListener;
+use Silarhi\TurboBundle\EventListener\TurboStreamListener;
 use Silarhi\TurboBundle\Twig\TurboExtension;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -29,8 +30,9 @@ use Twig\Extension\AbstractExtension;
 /**
  * Optional zero-config wiring for full Symfony applications.
  *
- * Register it in `config/bundles.php` to get TurboManager + TurboFrameListener
- * (and, when Twig is installed, the Twig extension and TurboStreamRenderer).
+ * Register it in `config/bundles.php` to get TurboManager, TurboFrameListener,
+ * TurboStreamCollector and its listener (and, when Twig is installed, the Twig
+ * extension and TurboStreamRenderer).
  * Projects without the framework can skip this class entirely and instantiate
  * the classes directly.
  *
@@ -83,9 +85,18 @@ final class SilarhiTurboBundle extends AbstractBundle
             ->args([service(TurboManager::class), $config['follow_delete_redirects']])
             ->tag('kernel.event_subscriber');
 
+        $services->set(TurboStreamBuilder::class);
+
+        $services->set(TurboStreamCollector::class)
+            ->autowire();
+
+        $services->set(TurboStreamListener::class)
+            ->args([service(TurboStreamCollector::class)])
+            ->tag('kernel.event_subscriber');
+
         if (class_exists(AbstractExtension::class)) {
             $services->set(TurboExtension::class)
-                ->args([service(TurboManager::class), $config['base_template']])
+                ->args([service(TurboManager::class), $config['base_template'], service(TurboStreamBuilder::class)])
                 ->tag('twig.extension');
 
             $services->set(TurboStreamRenderer::class)

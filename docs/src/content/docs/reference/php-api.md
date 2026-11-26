@@ -56,13 +56,22 @@ public function __construct(TurboManager $turboManager, bool $followDeleteRedire
 | `getSubscribedEvents(): array` (static)        | `kernel.response` → `onKernelResponse`, default priority.                                                                                                                                                                                                                                                                                      |
 | `onKernelResponse(ResponseEvent $event): void` | Replaces a redirect with a `204 + Turbo-Location`, keeping its other headers and cookies ([rules](/php/frame-redirects/#when-a-redirect-is-converted)), or turns it into a `303` ([rules](/php/frame-redirects/#303-see-other-for-the-other-redirects)). Adds `Vary: Turbo-Frame` and `Vary: Accept` to the responses that read those headers. |
 
+## `TurboStreamListener`
+
+`Silarhi\TurboBundle\EventListener\TurboStreamListener` appends the streams of `TurboStreamCollector` to the Turbo
+Stream response of the main request, on `kernel.response`.
+
+```php
+public function __construct(TurboStreamCollector $turboStreams)
+```
+
 ## `TurboExtension`
 
 `Silarhi\TurboBundle\Twig\TurboExtension` is a classic Twig `AbstractExtension` (not the `#[AsTwigFilter]` attribute),
 so it works on Symfony 6.4 and 7.0 to 7.2, where attribute-based Twig extensions are not auto-registered.
 
 ```php
-public function __construct(TurboManager $turboManager, string $baseTemplate = 'base-frame.html.twig')
+public function __construct(TurboManager $turboManager, string $baseTemplate = 'base-frame.html.twig', TurboStreamBuilder $turboStreamBuilder = new TurboStreamBuilder())
 ```
 
 | Method                                                                                                                                      | Effect                                                                                                                                                                 |
@@ -93,6 +102,37 @@ public function __construct(Environment $twig)
 
 `TurboManager::STREAM_CONTENT_TYPE` holds that content type.
 
+## `TurboStreamCollector`
+
+`Silarhi\TurboBundle\TurboStreamCollector` collects Turbo Streams on the main request of a `RequestStack`
+([Adding streams from anywhere](/php/turbo-streams/#adding-streams-from-anywhere-turbostreamcollector)). It depends on
+HttpFoundation only.
+
+```php
+public function __construct(RequestStack $requestStack, TurboStreamBuilder $turboStreamBuilder)
+```
+
+| Method                                                                                                                       | Effect                                                                |
+| ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `append()`, `prepend()`, `before()`, `after()` (`string $target, string $html): static`                                      | Adds a stream of that action.                                         |
+| `replace()`, `update()` (`string $target, string $html, bool $morph = false): static`                                        | Adds a stream of that action, with `method="morph"` when `$morph`.    |
+| `remove(string $target): static`                                                                                             | Adds a `remove` stream.                                               |
+| `refresh(?string $requestId = null): static`                                                                                 | Adds a `refresh` stream, with its `request-id`.                       |
+| `action(string $action, ?string $target = null, string $html = '', ?string $targets = null, array $attributes = []): static` | Adds a stream of any action.                                          |
+| `add(string $streams): static`                                                                                               | Adds streams already rendered.                                        |
+| `all(): array`, `hasStreams(): bool`                                                                                         | The streams collected, and whether there are any.                     |
+| `flush(): string`                                                                                                            | The streams collected, which it forgets.                              |
+| `createResponse(int $status = 200): Response`                                                                                | A Turbo Stream response with the streams collected, which it forgets. |
+
+## `TurboStreamBuilder`
+
+`Silarhi\TurboBundle\TurboStreamBuilder` renders the markup of a single `<turbo-stream>`. It depends on nothing, and
+`TurboStreamCollector` and the `turbo_stream` Twig helpers get it injected.
+
+| Method                                                                                                                         | Returns                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| `build(string $action, ?string $target = null, string $content = '', ?string $targets = null, array $attributes = []): string` | The stream; `$content` is HTML, not escaped. Throws on a `$target` and `$targets` both. |
+
 ## `TurboAssertionsTrait`
 
 `Silarhi\TurboBundle\Test\TurboAssertionsTrait` is a trait for PHPUnit tests ([Testing](/php/testing/)). Every method
@@ -109,5 +149,6 @@ is `public static`.
 ## `SilarhiTurboBundle`
 
 `Silarhi\TurboBundle\SilarhiTurboBundle` is the optional bundle: it defines the
-[configuration](/reference/configuration/) and registers `TurboManager` and `TurboFrameListener`, plus
-`TurboExtension` and `TurboStreamRenderer` when Twig is installed.
+[configuration](/reference/configuration/) and registers `TurboManager`, `TurboFrameListener`, `TurboStreamCollector`
+and `TurboStreamListener`, plus `TurboExtension` and
+`TurboStreamRenderer` when Twig is installed ([registered services](/reference/configuration/#registered-services)).

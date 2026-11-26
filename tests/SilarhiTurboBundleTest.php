@@ -18,8 +18,11 @@ use function dirname;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Silarhi\TurboBundle\EventListener\TurboFrameListener;
+use Silarhi\TurboBundle\EventListener\TurboStreamListener;
 use Silarhi\TurboBundle\SilarhiTurboBundle;
 use Silarhi\TurboBundle\TurboManager;
+use Silarhi\TurboBundle\TurboStreamBuilder;
+use Silarhi\TurboBundle\TurboStreamCollector;
 use Silarhi\TurboBundle\TurboStreamRenderer;
 use Silarhi\TurboBundle\Twig\TurboExtension;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
@@ -126,14 +129,14 @@ class SilarhiTurboBundleTest extends TestCase
         $definition = $this->loadExtension([])->getDefinition(TurboExtension::class);
 
         self::assertTrue($definition->hasTag('twig.extension'));
-        self::assertEquals([new Reference(TurboManager::class), 'base-frame.html.twig'], $definition->getArguments());
+        self::assertEquals([new Reference(TurboManager::class), 'base-frame.html.twig', new Reference(TurboStreamBuilder::class)], $definition->getArguments());
     }
 
     public function testPassesTheConfiguredBaseTemplateToTheTwigExtension(): void
     {
         $definition = $this->loadExtension(['base_template' => 'layout/_frame.html.twig'])->getDefinition(TurboExtension::class);
 
-        self::assertEquals([new Reference(TurboManager::class), 'layout/_frame.html.twig'], $definition->getArguments());
+        self::assertEquals([new Reference(TurboManager::class), 'layout/_frame.html.twig', new Reference(TurboStreamBuilder::class)], $definition->getArguments());
     }
 
     public function testRegistersTheTurboStreamRendererOnTwig(): void
@@ -141,6 +144,40 @@ class SilarhiTurboBundleTest extends TestCase
         $definition = $this->loadExtension([])->getDefinition(TurboStreamRenderer::class);
 
         self::assertEquals([new Reference('twig')], $definition->getArguments());
+    }
+
+    public function testRegistersTheStreamCollectorAndItsListener(): void
+    {
+        $container = $this->loadExtension([]);
+
+        self::assertTrue($container->hasDefinition(TurboStreamBuilder::class));
+        self::assertTrue($container->getDefinition(TurboStreamCollector::class)->isAutowired());
+        $definition = $container->getDefinition(TurboStreamListener::class);
+        self::assertTrue($definition->hasTag('kernel.event_subscriber'));
+        self::assertEquals([new Reference(TurboStreamCollector::class)], $definition->getArguments());
+    }
+
+    public function testCompiledContainerAppendsCollectedStreamsToAStreamResponse(): void
+    {
+        $container = $this->compiledContainer([]);
+        $request = new Request();
+        $this->requestStack($container)->push($request);
+
+        $turboStreams = $container->get('test.turbo_streams');
+        self::assertInstanceOf(TurboStreamCollector::class, $turboStreams);
+        $turboStreams->remove('project_1');
+
+        $event = new ResponseEvent(
+            self::createStub(HttpKernelInterface::class),
+            $request,
+            HttpKernelInterface::MAIN_REQUEST,
+            new Response('', Response::HTTP_OK, ['Content-Type' => TurboManager::STREAM_CONTENT_TYPE]),
+        );
+        $dispatcher = $container->get('event_dispatcher');
+        self::assertInstanceOf(EventDispatcherInterface::class, $dispatcher);
+        $dispatcher->dispatch($event, KernelEvents::RESPONSE);
+
+        self::assertSame('<turbo-stream action="remove" target="project_1"></turbo-stream>', $event->getResponse()->getContent());
     }
 
     public function testLaterConfigurationsOverrideEarlierOnes(): void
@@ -275,6 +312,7 @@ class SilarhiTurboBundleTest extends TestCase
         $container->register(RequestStack::class, RequestStack::class)->setPublic(true);
         $container->register('event_dispatcher', EventDispatcher::class)->setPublic(true);
         $container->setAlias('test.twig_extension', TurboExtension::class)->setPublic(true);
+        $container->setAlias('test.turbo_streams', TurboStreamCollector::class)->setPublic(true);
         $container->addCompilerPass(new RegisterListenersPass());
         $container->compile(true);
 

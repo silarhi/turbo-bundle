@@ -75,6 +75,59 @@ public function render(string $view, array $parameters = [], ?string $block = nu
 With `symfony/ux-turbo` in a controller, `renderBlock()` with its `TurboStreamResponse` does the same:
 `$this->renderBlock('project/edit.html.twig', 'success_stream', [...], new TurboStreamResponse())`.
 
+## Adding streams from anywhere: `TurboStreamCollector`
+
+`TurboStreamCollector` collects streams during the request, from a controller or any service: a cart counter, a
+notification badge, a row of another list. `TurboStreamListener` appends them to the Turbo Stream response of the
+request, whatever renders it (`TurboStreamRenderer`, the `TurboStreamResponse` of `symfony/ux-turbo`, a `Response` you
+build):
+
+```php
+use Silarhi\TurboBundle\TurboStreamCollector;
+
+final class CartManager
+{
+    public function __construct(
+        private readonly TurboStreamCollector $turboStreams,
+    ) {
+    }
+
+    public function add(Cart $cart, Product $product): void
+    {
+        // …
+        $this->turboStreams->update('cart-count', (string) $cart->count());
+    }
+}
+```
+
+The controller answers its own streams, and those of the cart come with them. A controller can also answer the
+collected streams alone:
+
+```php
+return $turboStreams
+    ->remove('cart_item_' . $item->getId())
+    ->update('cart-total', $this->renderView('cart/_total.html.twig', ['cart' => $cart]))
+    ->createResponse();
+```
+
+| Method                                                              | Adds                                                           |
+| ------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `append()`, `prepend()`, `before()`, `after()` (`$target`, `$html`) | the stream of that action                                      |
+| `replace()`, `update()` (`$target`, `$html`, `$morph = false`)      | the stream of that action, with `method="morph"` when `$morph` |
+| `remove($target)`                                                   | a `remove` stream                                              |
+| `refresh($requestId = null)`                                        | a `refresh` stream, with its [`request-id`](/php/request-id/)  |
+| `action($action, $target, $html, $targets, $attributes)`            | a stream of any action, a custom one included                  |
+| `add($streams)`                                                     | streams already rendered, for example by `renderView()`        |
+
+Each one returns the collector. `all()` lists the streams, `hasStreams()` tells whether there are any, `flush()`
+returns them and forgets them, and `createResponse($status = 200)` answers them in a Turbo Stream response.
+
+- The HTML is not escaped: escape what comes from the user.
+- The streams live on the main request, so a sub-request (a fragment, an inline ESI) adds to them too.
+- Only a Turbo Stream response gets them. A redirect or a full page drops them, as does a request without a stream
+  answer: check [`acceptsTurboStream()`](#deciding-acceptsturbostream) before relying on them.
+- Without a request (a console command, a message handler), there is nothing to answer: they are dropped.
+
 ## Writing streams: the `turbo_stream` filter
 
 The `<twig:Turbo:Stream:*>` components of `symfony/ux-turbo` cover the built-in actions only, and need TwigComponent.

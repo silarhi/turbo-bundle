@@ -65,6 +65,7 @@ The two halves solve different problems and only meet on redirect following (the
 - **`303 See Other`**: other redirects answered to a non-GET Turbo request are followed with a `GET`
 - **`turbo_frame` Twig filter**: extend a lean frame template only when the request targets a matching frame
 - **Turbo Stream answers**: `acceptsTurboStream()`, `TurboStreamRenderer` and a `turbo_stream` filter for any action
+- **Streams from anywhere**: `TurboStreamCollector` adds streams from any service to the stream answer of the request
 - **Request id**: `getTurboRequestId()` / `turbo_request_id()`, so a broadcast `refresh` skips the tab that sent it
 - **Test helpers**: `TurboAssertionsTrait` sends Turbo's headers and asserts Turbo Stream and `Turbo-Location` responses
 - **Framework-optional**: the bundle gives zero-config wiring; the classes also work standalone

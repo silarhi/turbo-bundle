@@ -1,6 +1,6 @@
 ---
 title: Without the framework
-description: Use TurboManager, TurboFrameListener and the Twig extension with Symfony components only.
+description: Use TurboManager, the listeners, TurboStreamCollector and the Twig extension with Symfony components only.
 sidebar:
     order: 6
 ---
@@ -12,16 +12,25 @@ the container) and instantiate the classes:
 
 ```php
 use Silarhi\TurboBundle\EventListener\TurboFrameListener;
+use Silarhi\TurboBundle\EventListener\TurboStreamListener;
 use Silarhi\TurboBundle\TurboManager;
+use Silarhi\TurboBundle\TurboStreamBuilder;
+use Silarhi\TurboBundle\TurboStreamCollector;
 use Silarhi\TurboBundle\TurboStreamRenderer;
 use Silarhi\TurboBundle\Twig\TurboExtension;
 
 $turboManager = new TurboManager($requestStack);
 $dispatcher->addSubscriber(new TurboFrameListener($turboManager));
 
+// Optional: streams collected during the request, appended to its Turbo Stream response
+$turboStreamBuilder = new TurboStreamBuilder();
+$turboStreams = new TurboStreamCollector($requestStack, $turboStreamBuilder);
+$dispatcher->addSubscriber(new TurboStreamListener($turboStreams));
+
 // Optional: the turbo_frame Twig filter (requires twig/twig).
-// The second argument is the base template the filter falls back to (default: 'base-frame.html.twig').
-$twig->addExtension(new TurboExtension($turboManager, 'base-frame.html.twig'));
+// The second argument is the base template the filter falls back to (default: 'base-frame.html.twig'),
+// the third the builder of the turbo_stream helpers (default: a new TurboStreamBuilder).
+$twig->addExtension(new TurboExtension($turboManager, 'base-frame.html.twig', $turboStreamBuilder));
 
 // Optional: render a template or one of its blocks as a Turbo Stream response (requires twig/twig).
 $turboStreamRenderer = new TurboStreamRenderer($twig);

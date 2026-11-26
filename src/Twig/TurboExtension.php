@@ -13,11 +13,8 @@ declare(strict_types=1);
 
 namespace Silarhi\TurboBundle\Twig;
 
-use InvalidArgumentException;
 use Silarhi\TurboBundle\TurboManager;
-
-use function sprintf;
-
+use Silarhi\TurboBundle\TurboStreamBuilder;
 use Stringable;
 use Twig\Environment;
 use Twig\Extension\AbstractExtension;
@@ -69,6 +66,7 @@ final class TurboExtension extends AbstractExtension
     public function __construct(
         private readonly TurboManager $turboManager,
         private readonly string $baseTemplate = 'base-frame.html.twig',
+        private readonly TurboStreamBuilder $turboStreamBuilder = new TurboStreamBuilder(),
     ) {
     }
 
@@ -167,19 +165,6 @@ final class TurboExtension extends AbstractExtension
      */
     public function turboStream(string|Stringable $content, string $action, ?string $target = null, ?string $targets = null, array $attributes = []): string
     {
-        if (null !== $target && null !== $targets) {
-            throw new InvalidArgumentException(sprintf('The "%s" Turbo Stream takes a target or targets, not both.', $action));
-        }
-
-        $html = '<turbo-stream';
-        foreach (['action' => $action, 'target' => $target, 'targets' => $targets] + $attributes as $name => $value) {
-            if (null === $value || false === $value) {
-                continue;
-            }
-            $html .= true === $value ? ' ' . $name : sprintf(' %s="%s"', $name, htmlspecialchars((string) $value, \ENT_QUOTES | \ENT_SUBSTITUTE, 'UTF-8'));
-        }
-        $content = (string) $content;
-
-        return $html . '>' . ('' === $content ? '' : '<template>' . $content . '</template>') . '</turbo-stream>';
+        return $this->turboStreamBuilder->build($action, $target, (string) $content, $targets, $attributes);
     }
 }

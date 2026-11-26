@@ -17,6 +17,7 @@ use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Silarhi\TurboBundle\TurboManager;
+use Silarhi\TurboBundle\TurboStreamBuilder;
 use Silarhi\TurboBundle\Twig\TurboExtension;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -359,6 +360,13 @@ class TurboExtensionTest extends TestCase
         $environment->addExtension($this->extensionFor(new Request()));
 
         self::assertSame('full:content', $environment->render('page.html.twig'));
+    }
+
+    public function testBuildsStreamsWithTheInjectedBuilder(): void
+    {
+        $extension = new TurboExtension(new TurboManager(new RequestStack()), 'base-frame.html.twig', new TurboStreamBuilder());
+
+        self::assertSame('<turbo-stream action="remove" target="project_1"></turbo-stream>', $extension->turboStream('', 'remove', 'project_1'));
     }
 
     private function extensionFor(Request $request, string $baseTemplate = 'base-frame.html.twig'): TurboExtension

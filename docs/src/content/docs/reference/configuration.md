@@ -23,11 +23,15 @@ Unknown keys are rejected.
 
 ## Registered services
 
-| Service id (class)                                     | Tag                       | Registered                    |
-| ------------------------------------------------------ | ------------------------- | ----------------------------- |
-| `Silarhi\TurboBundle\TurboManager`                     | (autowired)               | always                        |
-| `Silarhi\TurboBundle\EventListener\TurboFrameListener` | `kernel.event_subscriber` | always                        |
-| `Silarhi\TurboBundle\Twig\TurboExtension`              | `twig.extension`          | when `twig/twig` is installed |
+| Service id (class)                                      | Tag                       | Registered                    |
+| ------------------------------------------------------- | ------------------------- | ----------------------------- |
+| `Silarhi\TurboBundle\TurboManager`                      | (autowired)               | always                        |
+| `Silarhi\TurboBundle\EventListener\TurboFrameListener`  | `kernel.event_subscriber` | always                        |
+| `Silarhi\TurboBundle\TurboStreamBuilder`                |                           | always                        |
+| `Silarhi\TurboBundle\TurboStreamCollector`              | (autowired)               | always                        |
+| `Silarhi\TurboBundle\EventListener\TurboStreamListener` | `kernel.event_subscriber` | always                        |
+| `Silarhi\TurboBundle\Twig\TurboExtension`               | `twig.extension`          | when `twig/twig` is installed |
+| `Silarhi\TurboBundle\TurboStreamRenderer`               |                           | when `twig/twig` is installed |
 
-The services are private: inject `TurboManager` by its class name to read the Turbo headers of the current request
+The services are private: inject `TurboManager` or `TurboStreamCollector` by its class name to read the Turbo headers of the current request
 in your own code ([PHP API](/reference/php-api/#turbomanager)).
