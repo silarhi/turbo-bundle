@@ -150,13 +150,17 @@ public function __construct(RequestStack $requestStack, TurboStreamBuilder $turb
 `Silarhi\TurboBundle\Test\TurboAssertionsTrait` is a trait for PHPUnit tests ([Testing](/php/testing/)). Every method
 is `public static`.
 
-| Method                                                                                                      | Effect                                                                                                     |
-| ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `getTurboFrameHeaders(string $frameId): array`                                                              | The `$server` parameters of a frame request: `Turbo-Frame` and a new `X-Turbo-Request-Id`.                 |
-| `getTurboStreamHeaders(): array`                                                                            | The `$server` parameters of a Turbo 8 form submission: the stream `Accept` and a new `X-Turbo-Request-Id`. |
-| `assertTurboStreamResponse(Response $response, string $message = ''): void`                                 | Asserts a `text/vnd.turbo-stream.html` content type.                                                       |
-| `assertTurboStream(Response $response, string $action, ?string $target = null, string $message = ''): void` | Asserts a `<turbo-stream>` with this action, and this `target` or `targets` when given.                    |
-| `assertTurboLocation(Response $response, string $expectedUrl, string $message = ''): void`                  | Asserts a `204` with this `Turbo-Location`.                                                                |
+| Method                                                                                                                         | Effect                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `getTurboFrameHeaders(string $frameId): array`                                                                                 | The `$server` parameters of a frame request: `Turbo-Frame` and a new `X-Turbo-Request-Id`.                 |
+| `getTurboStreamHeaders(): array`                                                                                               | The `$server` parameters of a Turbo 8 form submission: the stream `Accept` and a new `X-Turbo-Request-Id`. |
+| `assertTurboStreamResponse(Response $response, string $message = ''): void`                                                    | Asserts a `text/vnd.turbo-stream.html` content type.                                                       |
+| `assertTurboStream(Response $response, string $action, ?string $target = null, string $message = ''): void`                    | Asserts a `<turbo-stream>` with this action, and this `target` or `targets` when given.                    |
+| `assertNoTurboStream(Response $response, ?string $action = null, ?string $target = null, string $message = ''): void`          | Asserts no `<turbo-stream>`, or none with this action (and target).                                        |
+| `assertTurboStreamCount(Response $response, int $expectedCount, string $message = ''): void`                                   | Asserts this number of `<turbo-stream>` elements.                                                          |
+| `assertTurboStreamContains(Response $response, string $action, ?string $target, string $expected, string $message = ''): void` | Asserts a matching stream has `$expected` in the HTML or the text of its `<template>`.                     |
+| `assertTurboFrame(Response $response, string $frameId, string $message = ''): void`                                            | Asserts a `<turbo-frame>` of this id.                                                                      |
+| `assertTurboLocation(Response $response, string $expectedUrl, string $message = ''): void`                                     | Asserts a `204` with this `Turbo-Location`.                                                                |
 
 ## `SilarhiTurboBundle`
 

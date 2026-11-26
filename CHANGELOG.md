@@ -27,7 +27,8 @@ same git tag; since 0.2.1 the npm package version follows that tag.
   `symfony/ux-turbo`): the tab that made the change skips the refresh, instead of reloading the page a second time.
 - `Silarhi\TurboBundle\Test\TurboAssertionsTrait` for functional tests: `getTurboFrameHeaders()` and
   `getTurboStreamHeaders()` return the headers of Turbo's requests as `$server` parameters, and
-  `assertTurboStreamResponse()`, `assertTurboStream()` and `assertTurboLocation()` check the responses.
+  `assertTurboStreamResponse()`, `assertTurboStream()`, `assertNoTurboStream()`, `assertTurboStreamCount()`,
+  `assertTurboStreamContains()`, `assertTurboFrame()` and `assertTurboLocation()` check the responses.
 - `TurboStreamCollector` collects Turbo Streams during the request, from any service (`append()`, `replace()`,
   `remove()`, `refresh()`, `action()` for a custom one…), and `TurboStreamListener` appends them to the Turbo Stream
   response of the request, whatever renders it. `createResponse()` answers them alone. Both get the markup of the

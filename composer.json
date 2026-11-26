@@ -54,7 +54,7 @@
         "twig/twig": "<3.8"
     },
     "suggest": {
-        "ext-dom": "Required by TurboAssertionsTrait::assertTurboStream()",
+        "ext-dom": "Required by the Turbo Stream and Turbo Frame assertions of TurboAssertionsTrait",
         "phpunit/phpunit": "Enables Silarhi\\TurboBundle\\Test\\TurboAssertionsTrait in your functional tests",
         "symfony/framework-bundle": "Register Silarhi\\TurboBundle\\SilarhiTurboBundle for zero-config service wiring (optional — TurboManager, TurboFrameListener and TurboExtension work without it, and without symfony/dependency-injection)",
         "symfony/ux-twig-component": "Enables the optional Turbo:Stream component (2.20+)",
