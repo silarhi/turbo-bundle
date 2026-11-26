@@ -1,6 +1,6 @@
 {
     "name": "silarhi/turbo-bundle",
-    "description": "Framework-agnostic Hotwire Turbo frame-redirect following and turbo_frame Twig filter for Symfony — the PHP companion to @silarhi/turbo",
+    "description": "Framework-agnostic Hotwire Turbo frame-redirect following and turbo_frame Twig filter for Symfony, the PHP companion to @silarhi/turbo",
     "license": "MIT",
     "type": "library",
     "keywords": [
@@ -56,7 +56,7 @@
     "suggest": {
         "ext-dom": "Required by the Turbo Stream and Turbo Frame assertions of TurboAssertionsTrait",
         "phpunit/phpunit": "Enables Silarhi\\TurboBundle\\Test\\TurboAssertionsTrait in your functional tests",
-        "symfony/framework-bundle": "Register Silarhi\\TurboBundle\\SilarhiTurboBundle for zero-config service wiring (optional — TurboManager, TurboFrameListener and TurboExtension work without it, and without symfony/dependency-injection)",
+        "symfony/framework-bundle": "Register Silarhi\\TurboBundle\\SilarhiTurboBundle for zero-config service wiring (optional: TurboManager, TurboFrameListener and TurboExtension work without it, and without symfony/dependency-injection)",
         "symfony/ux-twig-component": "Enables the optional Turbo:Stream component (2.20+)",
         "twig/twig": "Enables the `turbo_frame` Twig filter (auto-registered by SilarhiTurboBundle when present)"
     },
