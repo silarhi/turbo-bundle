@@ -185,11 +185,11 @@ class TurboExtensionTest extends TestCase
         self::assertTrue($filters[0]->needsEnvironment());
     }
 
-    public function testExposesTheFrameAndRequestIdFunctions(): void
+    public function testExposesTheFrameRequestIdAndStreamFunctions(): void
     {
         $functions = $this->extensionFor(new Request())->getFunctions();
 
-        self::assertSame(['turbo_frame_request', 'turbo_frame_id', 'turbo_request_id'], array_map(static fn (TwigFunction $function): string => $function->getName(), $functions));
+        self::assertSame(['turbo_frame_request', 'turbo_frame_id', 'turbo_request_id', 'turbo_stream'], array_map(static fn (TwigFunction $function): string => $function->getName(), $functions));
     }
 
     public function testRefreshStreamCarriesTheTurboRequestId(): void
@@ -248,6 +248,45 @@ class TurboExtensionTest extends TestCase
         $this->expectExceptionMessage('The "remove" Turbo Stream takes a target or targets, not both.');
 
         $this->extensionFor(new Request())->turboStream('', 'remove', 'project_1', '.project');
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function streamFunctionProvider(): iterable
+    {
+        yield 'remove' => [
+            "{{ turbo_stream('remove', 'project_1') }}",
+            '<turbo-stream action="remove" target="project_1"></turbo-stream>',
+        ];
+        yield 'plain content is escaped' => [
+            "{{ turbo_stream('append', 'notes', name) }}",
+            '<turbo-stream action="append" target="notes"><template>Café &lt;b&gt;</template></turbo-stream>',
+        ];
+        yield 'captured content stays safe' => [
+            "{% set content %}<p>{{ name }}</p>{% endset %}{{ turbo_stream('replace', 'notes', content) }}",
+            '<turbo-stream action="replace" target="notes"><template><p>Café &lt;b&gt;</p></template></turbo-stream>',
+        ];
+        yield 'targets and attributes' => [
+            "{{ turbo_stream('refresh', targets = '.project', attributes = {'request-id': name}) }}",
+            '<turbo-stream action="refresh" targets=".project" request-id="Café &lt;b&gt;"></turbo-stream>',
+        ];
+    }
+
+    #[DataProvider('streamFunctionProvider')]
+    public function testStreamFunction(string $template, string $expected): void
+    {
+        $environment = new Environment(new ArrayLoader(['stream.html.twig' => $template]));
+        $environment->addExtension($this->extensionFor(new Request()));
+
+        self::assertSame($expected, $environment->render('stream.html.twig', ['name' => 'Café <b>']));
+    }
+
+    public function testStreamFunctionRefusesATargetAndTargets(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        $this->extensionFor(new Request())->renderTurboStream($this->environment(), 'remove', 'project_1', targets: '.project');
     }
 
     public function testFrameFunctionsOutsideAnyTurboFrame(): void

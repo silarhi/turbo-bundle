@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Silarhi\TurboBundle;
 
+use function dirname;
+
 use Silarhi\TurboBundle\EventListener\TurboFrameListener;
 use Silarhi\TurboBundle\Twig\TurboExtension;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
@@ -41,6 +43,15 @@ use Twig\Extension\AbstractExtension;
  */
 final class SilarhiTurboBundle extends AbstractBundle
 {
+    public function prependExtension(ContainerConfigurator $configurator, ContainerBuilder $container): void
+    {
+        if ($container->hasExtension('twig')) {
+            $container->prependExtensionConfig('twig', [
+                'paths' => [dirname(__DIR__) . '/templates' => 'Turbo'],
+            ]);
+        }
+    }
+
     public function configure(DefinitionConfigurator $definition): void
     {
         $definition->rootNode()
