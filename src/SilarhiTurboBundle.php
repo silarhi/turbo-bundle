@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace Silarhi\TurboBundle;
 
-use function dirname;
-
 use Silarhi\TurboBundle\EventListener\TurboFrameListener;
 use Silarhi\TurboBundle\EventListener\TurboFrameMissingListener;
 use Silarhi\TurboBundle\EventListener\TurboStreamListener;
@@ -51,7 +49,7 @@ final class SilarhiTurboBundle extends AbstractBundle
     {
         if ($container->hasExtension('twig')) {
             $container->prependExtensionConfig('twig', [
-                'paths' => [dirname(__DIR__) . '/templates' => 'Turbo'],
+                'paths' => [__DIR__ . '/../templates' => 'Turbo'],
             ]);
         }
     }
