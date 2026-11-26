@@ -186,11 +186,20 @@ class TurboExtensionTest extends TestCase
         self::assertTrue($filters[0]->needsEnvironment());
     }
 
-    public function testExposesTheFrameRequestIdAndStreamFunctions(): void
+    public function testExposesTheFrameRequestIdStreamAndPageFunctions(): void
     {
         $functions = $this->extensionFor(new Request())->getFunctions();
 
-        self::assertSame(['turbo_frame_request', 'turbo_frame_id', 'turbo_request_id', 'turbo_stream'], array_map(static fn (TwigFunction $function): string => $function->getName(), $functions));
+        self::assertSame([
+            'turbo_frame_request',
+            'turbo_frame_id',
+            'turbo_request_id',
+            'turbo_stream',
+            'turbo_refreshes_with',
+            'turbo_exempts_page_from_cache',
+            'turbo_exempts_page_from_preview',
+            'turbo_page_requires_reload',
+        ], array_map(static fn (TwigFunction $function): string => $function->getName(), $functions));
     }
 
     public function testRefreshStreamCarriesTheTurboRequestId(): void
@@ -360,6 +369,38 @@ class TurboExtensionTest extends TestCase
         $environment->addExtension($this->extensionFor(new Request()));
 
         self::assertSame('full:content', $environment->render('page.html.twig'));
+    }
+
+    public function testRendersThePageMetaTagsOfTurbo8(): void
+    {
+        $twig = new Environment(new ArrayLoader([
+            'head.html.twig' => "{{ turbo_refreshes_with() }}\n{{ turbo_refreshes_with('morph', 'preserve') }}\n{{ turbo_exempts_page_from_cache() }}\n{{ turbo_exempts_page_from_preview() }}\n{{ turbo_page_requires_reload() }}",
+        ]));
+        $twig->addExtension($this->extensionFor(new Request()));
+
+        self::assertSame(implode("\n", [
+            '<meta name="turbo-refresh-method" content="replace"><meta name="turbo-refresh-scroll" content="reset">',
+            '<meta name="turbo-refresh-method" content="morph"><meta name="turbo-refresh-scroll" content="preserve">',
+            '<meta name="turbo-cache-control" content="no-cache">',
+            '<meta name="turbo-cache-control" content="no-preview">',
+            '<meta name="turbo-visit-control" content="reload">',
+        ]), $twig->render('head.html.twig'));
+    }
+
+    public function testRejectsAnUnknownRefreshMethod(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The Turbo refresh method must be "replace" or "morph", "swap" given.');
+
+        $this->extensionFor(new Request())->turboRefreshesWith('swap');
+    }
+
+    public function testRejectsAnUnknownRefreshScroll(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('The Turbo refresh scroll must be "reset" or "preserve", "keep" given.');
+
+        $this->extensionFor(new Request())->turboRefreshesWith('morph', 'keep');
     }
 
     public function testBuildsStreamsWithTheInjectedBuilder(): void

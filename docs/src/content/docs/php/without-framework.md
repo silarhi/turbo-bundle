@@ -2,7 +2,7 @@
 title: Without the framework
 description: Use TurboManager, the listeners, TurboStreamCollector and the Twig extension with Symfony components only.
 sidebar:
-    order: 6
+    order: 7
 ---
 
 The PHP half depends on three Symfony components only, `symfony/http-foundation`, `symfony/http-kernel` and

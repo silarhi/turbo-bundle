@@ -33,6 +33,9 @@ same git tag; since 0.2.1 the npm package version follows that tag.
   response of the request, whatever renders it. `createResponse()` answers them alone. Both get the markup of the
   streams from the `TurboStreamBuilder` service, which the `turbo_stream` Twig helpers share. `SilarhiTurboBundle`
   registers the three of them.
+- The `turbo_refreshes_with()`, `turbo_exempts_page_from_cache()`, `turbo_exempts_page_from_preview()` and
+  `turbo_page_requires_reload()` Twig functions render the `<meta>` tags that set how Turbo 8 refreshes, caches and
+  visits a page.
 
 ### Changed
 

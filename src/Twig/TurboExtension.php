@@ -13,8 +13,14 @@ declare(strict_types=1);
 
 namespace Silarhi\TurboBundle\Twig;
 
+use function in_array;
+
+use InvalidArgumentException;
 use Silarhi\TurboBundle\TurboManager;
 use Silarhi\TurboBundle\TurboStreamBuilder;
+
+use function sprintf;
+
 use Stringable;
 use Twig\Environment;
 use Twig\Extension\AbstractExtension;
@@ -57,6 +63,13 @@ use Twig\TwigFunction;
  * content: `{{ turbo_stream('remove', 'project_1') }}`. Plain content is escaped;
  * content captured with Twig's `set` tag retains its rendered HTML.
  *
+ * The page helpers of Turbo 8 render the `<meta>` tags of the page's `<head>`:
+ *
+ *     {{ turbo_refreshes_with('morph', 'preserve') }}
+ *     {{ turbo_exempts_page_from_cache() }}
+ *     {{ turbo_exempts_page_from_preview() }}
+ *     {{ turbo_page_requires_reload() }}
+ *
  * Classic AbstractExtension form (not the `#[AsTwigFilter]` attribute) so the
  * bundle keeps working on Symfony 6.4 / 7.0-7.2, where attribute-based Twig
  * extensions are not auto-registered.
@@ -91,6 +104,10 @@ final class TurboExtension extends AbstractExtension
             new TwigFunction('turbo_frame_id', $this->turboFrameId(...)),
             new TwigFunction('turbo_request_id', $this->turboRequestId(...)),
             new TwigFunction('turbo_stream', $this->renderTurboStream(...), ['needs_environment' => true, 'is_safe' => ['html']]),
+            new TwigFunction('turbo_refreshes_with', $this->turboRefreshesWith(...), ['is_safe' => ['html']]),
+            new TwigFunction('turbo_exempts_page_from_cache', $this->turboExemptsPageFromCache(...), ['is_safe' => ['html']]),
+            new TwigFunction('turbo_exempts_page_from_preview', $this->turboExemptsPageFromPreview(...), ['is_safe' => ['html']]),
+            new TwigFunction('turbo_page_requires_reload', $this->turboPageRequiresReload(...), ['is_safe' => ['html']]),
         ];
     }
 
@@ -117,6 +134,46 @@ final class TurboExtension extends AbstractExtension
     public function turboRequestId(): ?string
     {
         return $this->turboManager->getTurboRequestId();
+    }
+
+    /**
+     * The `<meta>` tags of how Turbo 8 refreshes the page: `replace` or `morph` the
+     * body, `reset` or `preserve` the scroll.
+     */
+    public function turboRefreshesWith(string $method = 'replace', string $scroll = 'reset'): string
+    {
+        if (!in_array($method, ['replace', 'morph'], true)) {
+            throw new InvalidArgumentException(sprintf('The Turbo refresh method must be "replace" or "morph", "%s" given.', $method));
+        }
+        if (!in_array($scroll, ['reset', 'preserve'], true)) {
+            throw new InvalidArgumentException(sprintf('The Turbo refresh scroll must be "reset" or "preserve", "%s" given.', $scroll));
+        }
+
+        return sprintf('<meta name="turbo-refresh-method" content="%s"><meta name="turbo-refresh-scroll" content="%s">', $method, $scroll);
+    }
+
+    /**
+     * Turbo neither caches the page nor shows it as a preview or on Back.
+     */
+    public function turboExemptsPageFromCache(): string
+    {
+        return '<meta name="turbo-cache-control" content="no-cache">';
+    }
+
+    /**
+     * Turbo caches the page for Back, but shows no preview of it before a visit.
+     */
+    public function turboExemptsPageFromPreview(): string
+    {
+        return '<meta name="turbo-cache-control" content="no-preview">';
+    }
+
+    /**
+     * A Drive visit to the page becomes a full page load.
+     */
+    public function turboPageRequiresReload(): string
+    {
+        return '<meta name="turbo-visit-control" content="reload">';
     }
 
     /**

@@ -66,6 +66,7 @@ The two halves solve different problems and only meet on redirect following (the
 - **`turbo_frame` Twig filter**: extend a lean frame template only when the request targets a matching frame
 - **Turbo Stream answers**: `acceptsTurboStream()`, `TurboStreamRenderer` and a `turbo_stream` filter for any action
 - **Streams from anywhere**: `TurboStreamCollector` adds streams from any service to the stream answer of the request
+- **Turbo 8 page helpers**: `turbo_refreshes_with()`, `turbo_exempts_page_from_cache()` and friends render the meta tags
 - **Request id**: `getTurboRequestId()` / `turbo_request_id()`, so a broadcast `refresh` skips the tab that sent it
 - **Test helpers**: `TurboAssertionsTrait` sends Turbo's headers and asserts Turbo Stream and `Turbo-Location` responses
 - **Framework-optional**: the bundle gives zero-config wiring; the classes also work standalone

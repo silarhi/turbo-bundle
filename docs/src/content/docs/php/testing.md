@@ -2,7 +2,7 @@
 title: Testing
 description: Send the headers of Turbo requests and assert Turbo Stream and Turbo-Location responses in your functional tests.
 sidebar:
-    order: 5
+    order: 6
 ---
 
 `Silarhi\TurboBundle\Test\TurboAssertionsTrait` gives your PHPUnit tests the headers Turbo sends and assertions on the
