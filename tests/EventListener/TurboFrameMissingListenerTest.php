@@ -17,12 +17,14 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Silarhi\TurboBundle\EventListener\TurboFrameMissingListener;
 use Silarhi\TurboBundle\TurboManager;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Symfony\Component\HttpKernel\KernelEvents;
 
 class TurboFrameMissingListenerTest extends TestCase
 {
@@ -126,8 +128,9 @@ class TurboFrameMissingListenerTest extends TestCase
         }
         $logger = new RecordingLogger();
 
-        $event = new ResponseEvent(self::createStub(HttpKernelInterface::class), $request, $requestType, $response);
-        (new TurboFrameMissingListener($logger))->onKernelResponse($event);
+        $dispatcher = new EventDispatcher();
+        $dispatcher->addSubscriber(new TurboFrameMissingListener($logger));
+        $dispatcher->dispatch(new ResponseEvent(self::createStub(HttpKernelInterface::class), $request, $requestType, $response), KernelEvents::RESPONSE);
 
         return $logger->logs;
     }
