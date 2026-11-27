@@ -39,10 +39,12 @@
         "phpstan/phpstan-strict-rules": "^2.1.2",
         "phpstan/phpstan-symfony": "^2.1.1",
         "phpunit/phpunit": "^11.5.57 || ^12.5.38 || ^13.4.1",
+        "psr/log": "^1.0 || ^2.0 || ^3.0",
         "rector/rector": "^2.9.2",
         "symfony/config": "^6.4 || ^7.0 || ^8.0",
         "symfony/dependency-injection": "^6.4 || ^7.0 || ^8.0",
         "symfony/error-handler": "^6.4 || ^7.0 || ^8.0",
+        "symfony/filesystem": "^6.4 || ^7.0 || ^8.0",
         "symfony/framework-bundle": "^6.4 || ^7.0 || ^8.0",
         "symfony/twig-bundle": "^6.4 || ^7.0 || ^8.0",
         "symfony/ux-twig-component": "^2.20 || ^3.0",
@@ -55,7 +57,9 @@
     },
     "suggest": {
         "ext-dom": "Required by the Turbo Stream and Turbo Frame assertions of TurboAssertionsTrait",
+        "ext-libxml": "Required by the Turbo Stream and Turbo Frame assertions of TurboAssertionsTrait",
         "phpunit/phpunit": "Enables Silarhi\\TurboBundle\\Test\\TurboAssertionsTrait in your functional tests",
+        "psr/log": "Logs the Turbo Frame answers without their <turbo-frame> in debug (TurboFrameMissingListener, given a logger)",
         "symfony/framework-bundle": "Register Silarhi\\TurboBundle\\SilarhiTurboBundle for zero-config service wiring (optional: TurboManager, TurboFrameListener and TurboExtension work without it, and without symfony/dependency-injection)",
         "symfony/ux-twig-component": "Enables the optional Turbo:Stream component (2.20+)",
         "twig/twig": "Enables the `turbo_frame` Twig filter (auto-registered by SilarhiTurboBundle when present)"
